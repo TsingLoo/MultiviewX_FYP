@@ -17,22 +17,28 @@ def calibrate():
 
         #数据以行呈现
         points_2d = points_2d[points_2d[:, 0] == 0, :]
-        print(points_2d)
+        #print(points_2d)
 
         points_3d = points_3d[points_3d[:, 0] == 0, :]
 
         # 最后一个坐标是脚底的位置
         #坐标数组 ... [1723.596   471.1655] [1421.27    544.6304]
         visualize_foot_image = points_2d[points_2d[:, 0] == 0, -2:]
-        #print(visualize_foot_image)
+        print(visualize_foot_image)
 
-        #读取0000.jpg图片，应该是对于此相机的第一张图片
-        image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
-        # cv2.imshow('IMREAD_COLOR+Color',image)
+        try:
+            #读取0000.jpg图片，应该是对于此相机的第一帧图片
+            image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
+            # cv2.imshow('IMREAD_COLOR+Color',image)
+        except:
+            image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
+
 
         #将二位的点标注在这张图片上
         for point in visualize_foot_image:
             cv2.circle(image, tuple(point.astype(int)), 20, (0, 255, 0), -1)
+            cv2.putText(image, str(int(2)), tuple(point.astype(int)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (55, 255, 155), 2)
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         plt.show()
         points_2d_list, points_3d_list = [], []
