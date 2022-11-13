@@ -9,11 +9,17 @@ extrinsic_camera_matrix_filenames = ['extr_Camera1.xml', 'extr_Camera2.xml', 'ex
                                      'extr_Camera5.xml', 'extr_Camera6.xml']
 
 
+#拿到了计算机的畸变参数
 def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     # WILDTRACK has irregular denotion: H*W=480*1440, normally x would be \in [0,1440), not [0,480)
     # In our data annotation, we follow the regular x \in [0,W), and one can calculate x = pos % W, y = pos // W
+    #将给定的地图转化为2维坐标
     coord_x, coord_y = get_worldcoord_from_pos(np.arange(MAP_HEIGHT * MAP_WIDTH * MAP_EXPAND * MAP_EXPAND))
+
+
     centers3d = np.stack([coord_x, coord_y, np.zeros_like(coord_y)], axis=1)
+    #print(centers3d)
+    #print("======")
     points3d8s = []
     points3d8s.append(centers3d + np.array([MAN_RADIUS, MAN_RADIUS, 0]))
     points3d8s.append(centers3d + np.array([-MAN_RADIUS, MAN_RADIUS, 0]))
@@ -23,6 +29,9 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     points3d8s.append(centers3d + np.array([-MAN_RADIUS, MAN_RADIUS, MAN_HEIGHT]))
     points3d8s.append(centers3d + np.array([MAN_RADIUS, -MAN_RADIUS, MAN_HEIGHT]))
     points3d8s.append(centers3d + np.array([-MAN_RADIUS, -MAN_RADIUS, MAN_HEIGHT]))
+    #print(points3d8s)
+    #shape[0]输出行数
+    #print([centers3d.shape[0], 4])
     bbox = np.ones([centers3d.shape[0], 4]) * np.array([IMAGE_WIDTH, IMAGE_HEIGHT, 0, 0])  # xmin,ymin,xmax,ymax
     for i in range(8):  # for all 8 points
         points_img, _ = cv2.projectPoints(points3d8s[i], rvec, tvec, cameraMatrix, distCoeffs)
@@ -51,19 +60,27 @@ def generate_POM():
     if os.path.exists(fpath):
         os.remove(fpath)
     fp = open(fpath, 'w')
+
     errors = []
     for cam in range(NUM_CAM):
         fp_calibration = cv2.FileStorage(f'calibrations/intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
                                          flags=cv2.FILE_STORAGE_READ)
+
+        #取得给定的相机参数
         cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
             'distortion_coefficients').mat()
+
         fp_calibration.release()
         fp_calibration = cv2.FileStorage(f'calibrations/extrinsic/{extrinsic_camera_matrix_filenames[cam]}',
                                          flags=cv2.FILE_STORAGE_READ)
         rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
+        #取得给定的相机外参
         fp_calibration.release()
 
+        #准备画框
         bbox, notvisible = generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs)  # xmin,ymin,xmax,ymax
+
+        #print(bbox)
 
         for pos in range(len(notvisible)):
             if notvisible[pos]:

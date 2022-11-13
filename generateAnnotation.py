@@ -68,7 +68,7 @@ def annotate():
             json.dump(annotations, fp, indent=4)
         if frame == 0:
             for cam in range(NUM_CAM):
-                img = Image.open(f'Image_subsets/C{cam + 1}/0000.png')
+                img = Image.open(f'Image_subsets/C{cam + 1}/0000.jpg')
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
                 for anno in annotations:
                     anno = anno['views'][cam]
