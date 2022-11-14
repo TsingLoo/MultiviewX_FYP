@@ -75,7 +75,37 @@ def annotate():
                     bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
                     if bbox[0] == -1 and bbox[1] == -1:
                         continue
-                    cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                    #cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                    #cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+                    cv2.circle(img, (1506,740), 5, (0, 255, 0), -1)
+                    cv2.putText(img, str((1506,740)), (1626,650),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1437,740), 5, (0, 255, 0), -1)
+                    cv2.putText(img, str((1437,740)), (1317,650),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1475,775), 5, (0, 255, 0), -1)
+                    cv2.putText(img, str((1475,775)), (1355,855),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1551,775), 5, (0, 255, 0), -1)
+                    cv2.putText(img, str((1551,775)), (1671,855),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+                    cv2.circle(img,(1567,388),5,(0,0, 255), -1)
+                    cv2.putText(img, str((1567,388)), (1687,308),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1490, 388), 5, (0, 0, 255), -1)
+                    cv2.putText(img, str((1490, 388)), (1400, 308),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1538, 396), 5, (0, 0, 255), -1)
+                    cv2.putText(img, str((1538, 396)), (1500, 496),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.circle(img, (1622, 396), 5, (0, 0, 255), -1)
+                    cv2.putText(img, str((1622, 396)), (1682, 496),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+
+                    #cv2.putText(img, str(bbox[2:]), tuple(bbox[2:]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                 img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
                 img.save(f'bbox_cam{cam + 1}.png')
                 plt.imshow(img)

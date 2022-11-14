@@ -24,34 +24,56 @@ def calibrate():
         # 最后一个坐标是脚底的位置
         #坐标数组 ... [1723.596   471.1655] [1421.27    544.6304]
         visualize_foot_image = points_2d[points_2d[:, 0] == 0, -2:]
-        print(visualize_foot_image)
+
+        #print(visualize_foot_image)
 
         try:
-            #读取0000.jpg图片，应该是对于此相机的第一帧图片
+            #读取0000.png图片，应该是对于此相机的第一帧图片
             image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
             # cv2.imshow('IMREAD_COLOR+Color',image)
         except:
             image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
 
 
-        #将二位的点标注在这张图片上
+        #将二维的脚底点标注在这张图片上
         for point in visualize_foot_image:
+            #print(point.astype(int))
+            #cv2.circle(image, (1506, 740), 5, (0, 255, 0), -1)
             cv2.circle(image, tuple(point.astype(int)), 20, (0, 255, 0), -1)
-            cv2.putText(image, str(int(2)), tuple(point.astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (55, 255, 155), 2)
+            cv2.putText(image, str(point.astype(int)), tuple(point.astype(int)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.show()
+        #plt.show()
         points_2d_list, points_3d_list = [], []
 
 
         for view in range(9):
             points_2d_list.append(points_2d[:, 2 * view + 2:2 * (view + 1) + 2])
+            print(" =               =  ")
+            print(points_2d[:, 2 * view + 2:2 * (view + 1) + 2])
+
             points_3d_list.append(points_3d[:, 3 * view + 2:3 * (view + 1) + 2])
 
-        #第0（第一列）帧所有人的脚底坐标
-        points_2d = np.concatenate(points_2d_list, axis=0).reshape([1, -1, 2]).astype('float32')
 
-        #世界坐标种的高度等等信息
+#        [[1   2   3]
+#        [111 222 333]]
+
+#       矩阵a的维度为: (2, 3)
+#        [[4  5  6]
+#         [44 55 67]]
+
+#        axis = 0
+#        的结果为:
+#        [[1   2   3]
+#         [111 222 333]
+#         [4   5   6]
+#         [44  55  67]]
+
+        points_2d = np.concatenate(points_2d_list, axis=0).reshape([1, -1, 2]).astype('float32')
+        print(" = = == = == ")
+        print(points_2d)
+
+        #世界坐标中的高度等等信息
         points_3d = np.concatenate(points_3d_list, axis=0).reshape([1, -1, 3]).astype('float32')
 
         #print(points_3d)
