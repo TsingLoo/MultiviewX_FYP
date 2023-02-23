@@ -16,6 +16,10 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     #将给定的地图转化为2维坐标
     coord_x, coord_y = get_worldcoord_from_pos(np.arange(MAP_HEIGHT * MAP_WIDTH * MAP_EXPAND * MAP_EXPAND))
 
+    print(MAP_WIDTH)
+    print(MAP_HEIGHT)
+    print(MAP_EXPAND)
+    print("coord_x:" + str(coord_x) + " coord_y: " + str(coord_y))
 
     centers3d = np.stack([coord_x, coord_y, np.zeros_like(coord_y)], axis=1)
     #print(centers3d)
@@ -42,12 +46,15 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
         bbox[:, 3] = np.max([bbox[:, 3], points_img[:, 1]], axis=0)  # xmax
         pass
     points_img, _ = cv2.projectPoints(centers3d, rvec, tvec, cameraMatrix, distCoeffs)
+
     points_img = points_img.squeeze()
     bbox[:, 3] = points_img[:, 1]
     # offset = points_img[:, 0] - (bbox[:, 0] + bbox[:, 2]) / 2
     # bbox[:, 0] += offset
     # bbox[:, 2] += offset
     notvisible = np.zeros([centers3d.shape[0]])
+    print(notvisible)
+
     notvisible += (bbox[:, 0] >= IMAGE_WIDTH - 2) + (bbox[:, 1] >= IMAGE_HEIGHT - 2) + \
                   (bbox[:, 2] <= 1) + (bbox[:, 3] <= 1)
     notvisible += bbox[:, 2] - bbox[:, 0] > bbox[:, 3] - bbox[:, 1]  # w > h
@@ -92,6 +99,11 @@ def generate_POM():
         foot_3d = get_worldcoord_from_pos(np.arange(len(notvisible)))
         foot_3d = np.concatenate([foot_3d, np.zeros([1, len(notvisible)])], axis=0).transpose()[
                   (1 - notvisible).astype(bool), :].reshape([1, -1, 3])
+        print("foot_3d================================")
+        print(foot_3d)
+        print("")
+
+
         projected_foot_2d, _ = cv2.projectPoints(foot_3d, rvec, tvec, cameraMatrix, distCoeffs)
         projected_foot_2d = projected_foot_2d.squeeze()
         foot_2d = np.array([(bbox[:, 0] + bbox[:, 2]) / 2, bbox[:, 3]]).transpose()[(1 - notvisible).astype(bool), :]

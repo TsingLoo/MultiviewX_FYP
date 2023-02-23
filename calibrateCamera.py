@@ -10,7 +10,7 @@ def calibrate():
     os.makedirs('calibrations/extrinsic', exist_ok=True)
     for cam in range(NUM_CAM):
         points_2d = np.loadtxt(f'matchings/Camera{cam + 1}.txt')
-        points_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
+        points_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3D.txt')
 
         #x[:,n]表示在全部数组（维）中取第n个数据，直观来说，x[:,n]就是取所有集合的第n个数据,即第一列数据
         #[:,0]表示[  0.   0.   0. ... 399. 399. 399.]
@@ -32,28 +32,30 @@ def calibrate():
             image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
             # cv2.imshow('IMREAD_COLOR+Color',image)
         except:
-            image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
+            try: image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
 
+            except:
+                print("Failed to read")
 
         #将二维的脚底点标注在这张图片上
         for point in visualize_foot_image:
             #print(point.astype(int))
             #cv2.circle(image, (1506, 740), 5, (0, 255, 0), -1)
-            cv2.circle(image, tuple(point.astype(int)), 20, (0, 255, 0), -1)
+            cv2.circle(image, tuple(point.astype(int)), 5, (0, 255, 0), -1)
             cv2.putText(image, str(point.astype(int)), tuple(point.astype(int)),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        #plt.show()
+        plt.title(cam + 1)
+        plt.show()
+
+
         points_2d_list, points_3d_list = [], []
 
 
         for view in range(9):
             points_2d_list.append(points_2d[:, 2 * view + 2:2 * (view + 1) + 2])
-            print(" =               =  ")
-            print(points_2d[:, 2 * view + 2:2 * (view + 1) + 2])
-
             points_3d_list.append(points_3d[:, 3 * view + 2:3 * (view + 1) + 2])
-
+            print(points_3d_list)
 
 #        [[1   2   3]
 #        [111 222 333]]
@@ -70,14 +72,14 @@ def calibrate():
 #         [44  55  67]]
 
         points_2d = np.concatenate(points_2d_list, axis=0).reshape([1, -1, 2]).astype('float32')
-        print(" = = == = == ")
-        print(points_2d)
+
 
         #世界坐标中的高度等等信息
         points_3d = np.concatenate(points_3d_list, axis=0).reshape([1, -1, 3]).astype('float32')
 
         #print(points_3d)
 
+        print(type(points_3d))
         #通过给定的信息求出此摄像机的信息矩阵
         cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, (IMAGE_HEIGHT, IMAGE_WIDTH))
 
@@ -96,10 +98,13 @@ def calibrate():
         f.write(name='camera_matrix', val=cameraMatrix)
         f.write(name='distortion_coefficients', val=distCoeffs)
         f.release()
-        f = cv2.FileStorage(f'calibrations/extrinsic/extr_Camera{cam + 1}.xml', flags=cv2.FileStorage_WRITE_BASE64)
+        f = cv2.FileStorage(f'calibrations/extrinsic/extr_Camera{cam + 1}.xml', flags=cv2.FileStorage_WRITE)
         f.write(name='rvec', val=rvecs[0])
         f.write(name='tvec', val=tvecs[0])
         f.release()
+
+
+        print("Calibrate HAS DONE =================================================================");
     pass
 
 
