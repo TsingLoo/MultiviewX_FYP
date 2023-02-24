@@ -83,6 +83,7 @@ def calibrate():
         #通过给定的信息求出此摄像机的信息矩阵
         cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, (IMAGE_HEIGHT, IMAGE_WIDTH))
 
+
         #重投影误差,越小越好，内参矩阵，dist相机畸变函数， rvecs 标定棋盘格世界坐标系到相机坐标系的旋转函数 平移参数
         #https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
         #0.0004178419607408868 [[899.99963677   0.         959.99969735] [  0.         899.99954514 540.00000687][  0.           0.           1.        ]]
