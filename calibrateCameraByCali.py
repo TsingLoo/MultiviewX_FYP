@@ -4,6 +4,31 @@ import cv2
 import os
 from datasetParameters import *
 
+def showPoints(points2D,camIndex):
+
+    try:
+        #读取0000.png图片，应该是对于此相机的第一帧图片
+        image = cv2.imread(f'Image_subsets/C{camIndex + 1}/0000.png')
+        # cv2.imshow('IMREAD_COLOR+Color',image)
+    except:
+        try: image = cv2.imread(f'Image_subsets/C{camIndex + 1}/0000.jpg')
+
+        except:
+            print("Failed to read")
+
+    for point in points2D:
+        #print(point.astype(int))
+        #cv2.circle(image, (1506, 740), 5, (0, 255, 0), -1)
+        cv2.circle(image, tuple(point.astype(int)), 5, (0, 255, 0), -1)
+        cv2.putText(image, str(point.astype(int)), tuple(point.astype(int)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0, (255, 255, 255), 2)
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title(camIndex)
+    plt.show()
+
+
+
+
 
 def calibrate():
     os.makedirs('calibrations/intrinsic', exist_ok=True)
@@ -12,25 +37,7 @@ def calibrate():
         points_2d = np.loadtxt(f'cali/Camera{cam + 1}.txt')
         points_3d = np.loadtxt(f'cali/Camera{cam + 1}_3D.txt')
 
-        try:
-            #读取0000.png图片，应该是对于此相机的第一帧图片
-            image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
-            # cv2.imshow('IMREAD_COLOR+Color',image)
-        except:
-            try: image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
-
-            except:
-                print("Failed to read")
-
-        for point in points_2d:
-            #print(point.astype(int))
-            #cv2.circle(image, (1506, 740), 5, (0, 255, 0), -1)
-            cv2.circle(image, tuple(point.astype(int)), 5, (0, 255, 0), -1)
-            cv2.putText(image, str(point.astype(int)), tuple(point.astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0, (255, 255, 255), 2)
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.title(cam + 1)
-        plt.show()
+        #showPoints(points_2d,cam)
 
         points_2d = np.concatenate(points_2d, axis=0).reshape([1, -1, 2]).astype('float32')
         points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
@@ -38,8 +45,6 @@ def calibrate():
 
         #通过给定的信息求出此摄像机的信息矩阵
         cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, (IMAGE_HEIGHT, IMAGE_WIDTH))
-        f = cv2.FileStorage(f'calibrations/intrinsic/intr_Camera{cam + 1}3.xml', flags=cv2.FILE_STORAGE_WRITE)
-        f.write(name='camera_matrix', val=cameraMatrix)
 
 
         #重投影误差,越小越好，内参矩阵，dist相机畸变函数， rvecs 标定棋盘格世界坐标系到相机坐标系的旋转函数 平移参数
