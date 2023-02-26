@@ -21,7 +21,7 @@ def showPoints(points2D,camIndex):
         #cv2.circle(image, (1506, 740), 5, (0, 255, 0), -1)
         cv2.circle(image, tuple(point.astype(int)), 5, (0, 255, 0), -1)
         cv2.putText(image, str(point.astype(int)), tuple(point.astype(int)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0, (255, 255, 255), 2)
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title(camIndex)
     plt.show()
@@ -33,9 +33,12 @@ def showPoints(points2D,camIndex):
 def calibrate():
     os.makedirs('calibrations/intrinsic', exist_ok=True)
     os.makedirs('calibrations/extrinsic', exist_ok=True)
+    size = (IMAGE_WIDTH, IMAGE_HEIGHT)
+    #size = (IMAGE_HEIGHT, IMAGE_WIDTH)
+
     for cam in range(NUM_CAM):
-        points_2d = np.loadtxt(f'cali/Camera{cam + 1}.txt')
-        points_3d = np.loadtxt(f'cali/Camera{cam + 1}_3D.txt')
+        points_2d = np.loadtxt(f'calib/Camera{cam + 1}.txt')
+        points_3d = np.loadtxt(f'calib/Camera{cam + 1}_3D.txt')
 
         #showPoints(points_2d,cam)
 
@@ -43,18 +46,18 @@ def calibrate():
         points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
 
 
-        #通过给定的信息求出此摄像机的信息矩阵
-        cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, (IMAGE_HEIGHT, IMAGE_WIDTH))
 
+
+        #通过给定的信息求出此摄像机的信息矩阵
+        #cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size)
+        cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size, 1)
 
         #重投影误差,越小越好，内参矩阵，dist相机畸变函数， rvecs 标定棋盘格世界坐标系到相机坐标系的旋转函数 平移参数
         #https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
         #0.0004178419607408868 [[899.99963677   0.         959.99969735] [  0.         899.99954514 540.00000687][  0.           0.           1.        ]]
         #[[ 9.46976752e-07 -1.57584887e-06  1.76995464e-08 -1.60416686e-07 5.67520302e-07]] (array([[-4.81027129e-07],[-1.91248031e+00],[-2.49239284e+00]]),)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
-            cv2.calibrateCamera(points_3d, points_2d, (IMAGE_HEIGHT, IMAGE_WIDTH), cameraMatrix, None,
-                                flags=cv2.CALIB_USE_INTRINSIC_GUESS, )
-
+            cv2.calibrateCamera(points_3d, points_2d, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS)
 
 
         #给出了畸变参数
