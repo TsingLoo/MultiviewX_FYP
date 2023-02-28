@@ -15,6 +15,8 @@ def calibrate():
         points_2d = np.loadtxt(f'matchings/Camera{cam + 1}.txt')
         points_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3D.txt')
 
+
+
         #x[:,n]表示在全部数组（维）中取第n个数据，直观来说，x[:,n]就是取所有集合的第n个数据,即第一列数据
         #[:,0]表示[  0.   0.   0. ... 399. 399. 399.]
 

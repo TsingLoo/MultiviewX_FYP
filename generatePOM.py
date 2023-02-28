@@ -14,6 +14,8 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     # WILDTRACK has irregular denotion: H*W=480*1440, normally x would be \in [0,1440), not [0,480)
     # In our data annotation, we follow the regular x \in [0,W), and one can calculate x = pos % W, y = pos // W
     #将给定的地图转化为2维坐标
+
+
     coord_x, coord_y = get_worldcoord_from_pos(np.arange(MAP_HEIGHT * MAP_WIDTH * MAP_EXPAND * MAP_EXPAND))
 
     print(MAP_WIDTH)

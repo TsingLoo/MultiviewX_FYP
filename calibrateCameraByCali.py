@@ -1,9 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import os
 from datasetParameters import *
-
+import numpy as np
 def showPoints(points2D,camIndex):
 
     try:
@@ -27,37 +26,44 @@ def showPoints(points2D,camIndex):
     plt.show()
 
 
-
-
-
 def calibrate():
     os.makedirs('calibrations/intrinsic', exist_ok=True)
     os.makedirs('calibrations/extrinsic', exist_ok=True)
     size = (IMAGE_WIDTH, IMAGE_HEIGHT)
     #size = (IMAGE_HEIGHT, IMAGE_WIDTH)
 
+
     for cam in range(NUM_CAM):
-        points_2d = np.loadtxt(f'calib/Camera{cam + 1}.txt')
-        points_3d = np.loadtxt(f'calib/Camera{cam + 1}_3D.txt')
+        obj_points_3D = []  # 3d point in real world space
+        img_points_2D = []  # 2d points in image plane.
+
+        for i in range(50):
+            corners2 = np.array(np.loadtxt(f'calib/C{cam + 1}/{i}.txt').astype('float32'))
+            obj_3D = np.array(np.loadtxt(f'calib/C{cam + 1}/{i}_3d.txt').astype('float32'))
+            #print(type(obj_3D))
+            #print(obj_3D)
+            obj_points_3D.append(obj_3D)
+            img_points_2D.append(corners2)
+
 
         #showPoints(points_2d,cam)
+        #points_2d = np.concatenate(points_2d, axis=0).reshape([1, -1, 2]).astype('float32')
+        #points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
+        print(type(obj_points_3D))
 
-        points_2d = np.concatenate(points_2d, axis=0).reshape([1, -1, 2]).astype('float32')
-        points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
-
-
-
-
+        #print(obj_points_3D)
+        for i in obj_points_3D:
+            print(i)
         #通过给定的信息求出此摄像机的信息矩阵
         #cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size)
-        cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size, 1)
+        cameraMatrix = cv2.initCameraMatrix2D(obj_points_3D,  img_points_2D, size, 1)
 
         #重投影误差,越小越好，内参矩阵，dist相机畸变函数， rvecs 标定棋盘格世界坐标系到相机坐标系的旋转函数 平移参数
         #https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
         #0.0004178419607408868 [[899.99963677   0.         959.99969735] [  0.         899.99954514 540.00000687][  0.           0.           1.        ]]
         #[[ 9.46976752e-07 -1.57584887e-06  1.76995464e-08 -1.60416686e-07 5.67520302e-07]] (array([[-4.81027129e-07],[-1.91248031e+00],[-2.49239284e+00]]),)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
-            cv2.calibrateCamera(points_3d, points_2d, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS)
+            cv2.calibrateCamera(obj_points_3D,  img_points_2D, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS)
 
 
         #给出了畸变参数
