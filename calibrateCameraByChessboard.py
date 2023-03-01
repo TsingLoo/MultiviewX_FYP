@@ -38,12 +38,20 @@ def calibrate():
         img_points_2D = []  # 2d points in image plane.
 
         for i in range(50):
-            corners2 = np.array(np.loadtxt(f'calib/C{cam + 1}/{i}.txt').astype('float32'))
-            obj_3D = np.array(np.loadtxt(f'calib/C{cam + 1}/{i}_3d.txt').astype('float32'))
-            #print(type(obj_3D))
-            #print(obj_3D)
-            obj_points_3D.append(obj_3D)
-            img_points_2D.append(corners2)
+            file = f'calib/C{cam + 1}/{i}.txt'
+            file3d = f'calib/C{cam + 1}/{i}_3d.txt'
+            if os.path.getsize(file) == 0 or os.path.getsize(file3d) == 0:  # 文件大小为0
+                os.remove(file)  # 删除这个文件
+                os.remove(file3d)  # 删除这个文件
+            else:
+                corners2 = np.loadtxt(file)
+                if(len(corners2)>5):
+                    corners2 = np.array(corners2.astype('float32'))
+                    obj_3D = np.array(np.loadtxt(file3d).astype('float32'))
+                    # print(type(obj_3D))
+                    # print(obj_3D)
+                    obj_points_3D.append(obj_3D)
+                    img_points_2D.append(corners2)
 
 
         #showPoints(points_2d,cam)
@@ -52,8 +60,6 @@ def calibrate():
         print(type(obj_points_3D))
 
         #print(obj_points_3D)
-        for i in obj_points_3D:
-            print(i)
         #通过给定的信息求出此摄像机的信息矩阵
         #cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size)
         cameraMatrix = cv2.initCameraMatrix2D(obj_points_3D,  img_points_2D, size, 1)
@@ -80,9 +86,10 @@ def calibrate():
         f.release()
 
 
-        print("Calibrate HAS DONE =================================================================");
+        print(f"==== Calibrate {cam + 1} HAS DONE ====");
     pass
 
 
 if __name__ == '__main__':
     calibrate()
+
