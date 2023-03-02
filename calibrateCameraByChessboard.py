@@ -40,24 +40,25 @@ def calibrate():
         for i in range(50):
             file = f'calib/C{cam + 1}/{i}.txt'
             file3d = f'calib/C{cam + 1}/{i}_3d.txt'
-            if os.path.getsize(file) == 0 or os.path.getsize(file3d) == 0:  # 文件大小为0
-                os.remove(file)  # 删除这个文件
-                os.remove(file3d)  # 删除这个文件
-            else:
-                corners2 = np.loadtxt(file)
-                if(len(corners2)>5):
-                    corners2 = np.array(corners2.astype('float32'))
-                    obj_3D = np.array(np.loadtxt(file3d).astype('float32'))
-                    # print(type(obj_3D))
-                    # print(obj_3D)
-                    obj_points_3D.append(obj_3D)
-                    img_points_2D.append(corners2)
+            if os.path.exists(file) and os.path.exists(file3d):
+                if os.path.getsize(file) == 0 or os.path.getsize(file3d) == 0:  # 文件大小为0
+                    os.remove(file)  # 删除这个文件
+                    os.remove(file3d)  # 删除这个文件
+                else:
+                    corners2 = np.loadtxt(file)
+                    if(len(corners2)>5):
+                        corners2 = np.array(corners2.astype('float32'))
+                        obj_3D = np.array(np.loadtxt(file3d).astype('float32'))
+                        # print(type(obj_3D))
+                        # print(obj_3D)
+                        obj_points_3D.append(obj_3D)
+                        img_points_2D.append(corners2)
 
 
         #showPoints(points_2d,cam)
         #points_2d = np.concatenate(points_2d, axis=0).reshape([1, -1, 2]).astype('float32')
         #points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
-        print(type(obj_points_3D))
+        #print(type(obj_points_3D))
 
         #print(obj_points_3D)
         #通过给定的信息求出此摄像机的信息矩阵
@@ -85,7 +86,7 @@ def calibrate():
 
         f.release()
 
-
+        #print(retval)
         print(f"==== Calibrate {cam + 1} HAS DONE ====");
     pass
 
