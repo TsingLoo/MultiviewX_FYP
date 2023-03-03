@@ -36,6 +36,11 @@ def calibrate():
     for cam in range(NUM_CAM):
         obj_points_3D = []  # 3d point in real world space
         img_points_2D = []  # 2d points in image plane.
+        mark_points_2D = []
+        mark_points_3D = []
+
+        file = f'calib/C{cam + 1}/markPoints.txt'
+        file3d = f'calib/C{cam + 1}/markPoints_3d.txt'
 
         for i in range(50):
             file = f'calib/C{cam + 1}/{i}.txt'

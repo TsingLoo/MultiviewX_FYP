@@ -61,6 +61,16 @@ public class CalibrateTool : MonoBehaviour
     [SerializeField] int heightOfChessboard = 7;
 
     /// <summary>
+    /// The square length of mark points square
+    /// </summary>
+    [SerializeField] int lengthOfMarkPointsSquare = 7;
+
+    /// <summary>
+    /// The distance bettween two points
+    /// </summary>
+    [SerializeField] float adjacentPointDistance = 1;
+
+    /// <summary>
     /// Random offsets for updating the chessboard 
     /// </summary>
     [SerializeField] float tRandomOffset = 5f;
@@ -68,9 +78,14 @@ public class CalibrateTool : MonoBehaviour
 
 
     /// <summary>
-    /// A dictionary to store the points(GameObject) and their coordinates(follow OpenCV,(x,y,0)) of the chessboard
+    /// A dictionary to store the cornerpoints(GameObject) on chessboard and their coordinates(follow OpenCV,(x,y,0)) of the chessboard
     /// </summary>
-    Dictionary<GameObject, Vector3> markPointsDic = new Dictionary<GameObject, Vector3>();
+    Dictionary<GameObject, Vector3> cornerPointsDic = new Dictionary<GameObject, Vector3>();
+
+    /// <summary>
+    /// An array to store the static mark points 
+    /// </summary>
+    Vector3[] markPoints;
 
     /// <summary>
     /// Index of chessboard
@@ -80,6 +95,7 @@ public class CalibrateTool : MonoBehaviour
     private void Awake()
     {
         GenerateMarkPoints();
+        GenerateVisualChessboard();
     }
 
     void Start()
@@ -87,7 +103,7 @@ public class CalibrateTool : MonoBehaviour
         targetParentFolder = targetParentFolder + "\\calib";
         Debug.Log("[IO][Calib]Calibrate saved in " + targetParentFolder);
         ResetFolder(targetParentFolder);
-        //BeginToCalibrate();
+        BeginToCalibrate();
     }
 
     void BeginToCalibrate() 
@@ -97,6 +113,13 @@ public class CalibrateTool : MonoBehaviour
             Debug.LogWarning("[Calib] No camera to calibrate, please check " + nameof(CalibrateTool) + "." + nameof(camerasToCalibrate));
             return;
         }
+
+        int cameraIndex = 0;
+        foreach (var cam in camerasToCalibrate)
+        {
+            WriteMarkPointsScreenPos(cam, cameraIndex);
+            cameraIndex++;
+        }
         StartCoroutine(Func());
     }
 
@@ -104,6 +127,7 @@ public class CalibrateTool : MonoBehaviour
 
     IEnumerator Func()
     {
+
         while (true)// or for(i;i;i)
         {
             yield return new WaitForSeconds(updateChessboardInterval); // first
@@ -124,21 +148,36 @@ public class CalibrateTool : MonoBehaviour
         }
     }
 
+    void GenerateMarkPoints() 
+    {
+        markPoints = new Vector3[(2*lengthOfMarkPointsSquare) * (2 * lengthOfMarkPointsSquare)];
+        int index = 0;
 
+        for (int i = - lengthOfMarkPointsSquare; i < lengthOfMarkPointsSquare; i++)
+        {
+            for (int j = -lengthOfMarkPointsSquare; j < lengthOfMarkPointsSquare; j++)
+            {
+                //Debug.Log(index);
+                markPoints[index] = chessboardGenerateCenter.transform.position + new Vector3(i * adjacentPointDistance, 0, j * adjacentPointDistance);
+                index++;
+            }
+        }
 
+        
+    }
     /// <summary>
-    /// Generate mark points around the chessboardGenerateCenter
+    /// Generate the visual chessboard
     /// </summary>
-    void GenerateMarkPoints()
+    void GenerateVisualChessboard()
     {
         for (int w = 0; w < widthOfChessboard; w++)
         {
             for (int h =0; h < heightOfChessboard; h++)
             {
-                GameObject markPoint = new GameObject(w.ToString() + "_" + h.ToString());
-                markPoint.transform.position = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE);
-                markPoint.transform.parent = transform;
-                markPointsDic.Add(markPoint, new Vector3(w * SQUARE_SIZE, h * SQUARE_SIZE, 0));
+                GameObject cornerPoint = new GameObject(w.ToString() + "_" + h.ToString());
+                cornerPoint.transform.position = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE);
+                cornerPoint.transform.parent = transform;
+                cornerPointsDic.Add(cornerPoint, new Vector3(w * SQUARE_SIZE, h * SQUARE_SIZE, 0));
             }
         }
         gameObject.transform.position = chessboardGenerateCenter.transform.position;
@@ -160,12 +199,45 @@ public class CalibrateTool : MonoBehaviour
         transform.rotation = Quaternion.Euler(NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset));
     }
 
+    void WriteMarkPointsScreenPos(Camera cam, int cameraIndex)
+    {
+        List<Vector3> validMarkPointsList = new List<Vector3>();
+        foreach (var markPoint in markPoints)
+        {
+            Vector3 viewPos = cam.WorldToViewportPoint(markPoint);
+            if (viewPos.x >= 0 && viewPos.x <= 1 && viewPos.y >= 0 && viewPos.y <= 1 && viewPos.z > 0)
+            {
+                validMarkPointsList.Add(markPoint);
+            }
+        }
+
+        Vector3[] validMarkPoints = validMarkPointsList.ToArray();
+        Vector2[] markPointsScreenPoints = ConvertWorldPointsToScreenPointsOpenCV(validMarkPoints, cam);
+        for (int i = 0; i < validMarkPoints.Length; i++)
+        { 
+            float temp = validMarkPoints[i].y;
+            validMarkPoints[i].y = validMarkPoints[i].z;
+            validMarkPoints[i].z = temp;
+        }     
+        
+        string file_name = "markPoints.txt";
+        string file_name_3d = "markPoints_3d.txt";
+        StreamWriter sw = CreateSW(cameraIndex, file_name);
+        StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
+        WriteArrayToFile(markPointsScreenPoints, ref sw);
+        WriteArrayToFile(validMarkPoints, ref sw_3d);
+
+        sw.Close();
+        sw_3d.Close();
+    }
+
     void WriteChessboardScreenPos(Camera cam, int cameraIndex)
     {
         List<Vector3> validObjectPointsList = new List<Vector3>();
         List<Vector3> outPutObjList = new List<Vector3>();
 
-        foreach (var go in markPointsDic)
+
+        foreach (var go in cornerPointsDic)
         {
             Vector3 viewPos = cam.WorldToViewportPoint(go.Key.transform.position);
             if (viewPos.x >= 0 && viewPos.x <= 1 && viewPos.y >= 0 && viewPos.y <= 1 && viewPos.z > 0)
@@ -175,19 +247,8 @@ public class CalibrateTool : MonoBehaviour
             }
         }
 
-
-
         Vector3[] validObjectPoints = validObjectPointsList.ToArray();
         Vector2[] imagePoints = ConvertWorldPointsToScreenPointsOpenCV(validObjectPoints, cam);
-
-        if (boardIndex == 0)
-        {
-            foreach (var point in validObjectPoints)
-            {
-                Debug.Log("[Calib]The first view is: ");
-                Debug.Log(point);
-            }
-        }
 
         string file_name = boardIndex + ".txt";
         string file_name_3d =  boardIndex + "_3d.txt";
@@ -235,8 +296,6 @@ public class CalibrateTool : MonoBehaviour
             sw = fileInfo.AppendText();//打开现有 UTF-8 编码文本文件以进行读取  
             return sw;
         }
-
-        Debug.Log(fileInfo);
     }
 
     public void WriteArrayToFile(Vector2[] array, ref StreamWriter sw)
@@ -283,14 +342,23 @@ public class CalibrateTool : MonoBehaviour
 
     }
 
-    [ExecuteInEditMode]
     private void OnDrawGizmos()
     {
-        foreach (var go in markPointsDic)
+        foreach (var go in cornerPointsDic)
         {
             Gizmos.color = new Color(1, 0, 0, 0.5f);
             Gizmos.DrawCube(go.Key.transform.position, new Vector3(0.01f, 0.01f, 0.01f));
             Handles.Label(go.Key.transform.position, go.Value.ToString());
+        }
+
+        if (markPoints is null) return;
+     
+        foreach (var go in markPoints)
+        {
+            Debug.Log(go);
+            Gizmos.color = new Color(0, 1, 0, 0.5f);
+            Gizmos.DrawCube(go, new Vector3(0.01f, 0.01f, 0.01f));
+            Handles.Label(go, go.ToString());
         }
     }
 }
