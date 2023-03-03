@@ -34,13 +34,16 @@ def calibrate():
 
 
     for cam in range(NUM_CAM):
+        print(f"Begin to process camera{cam + 1}")
         obj_points_3D = []  # 3d point in real world space
         img_points_2D = []  # 2d points in image plane.
-        mark_points_2D = []
-        mark_points_3D = []
 
         file = f'calib/C{cam + 1}/markPoints.txt'
         file3d = f'calib/C{cam + 1}/markPoints_3d.txt'
+
+        mark_points_2D = np.array(np.loadtxt(file).astype('float32'))
+        mark_points_3D = np.array(np.loadtxt(file3d).astype('float32'))
+
 
         for i in range(50):
             file = f'calib/C{cam + 1}/{i}.txt'
@@ -59,7 +62,7 @@ def calibrate():
                         obj_points_3D.append(obj_3D)
                         img_points_2D.append(corners2)
 
-
+        print(f"IO Pass")
         #showPoints(points_2d,cam)
         #points_2d = np.concatenate(points_2d, axis=0).reshape([1, -1, 2]).astype('float32')
         #points_3d = np.concatenate(points_3d, axis=0).reshape([1, -1, 3]).astype('float32')
@@ -69,14 +72,22 @@ def calibrate():
         #通过给定的信息求出此摄像机的信息矩阵
         #cameraMatrix = cv2.initCameraMatrix2D(points_3d, points_2d, size)
         cameraMatrix = cv2.initCameraMatrix2D(obj_points_3D,  img_points_2D, size, 1)
+        print(f"Init Camera Pass")
 
         #重投影误差,越小越好，内参矩阵，dist相机畸变函数， rvecs 标定棋盘格世界坐标系到相机坐标系的旋转函数 平移参数
         #https://docs.opencv.org/3.4/dc/dbb/tutorial_py_calibration.html
         #0.0004178419607408868 [[899.99963677   0.         959.99969735] [  0.         899.99954514 540.00000687][  0.           0.           1.        ]]
         #[[ 9.46976752e-07 -1.57584887e-06  1.76995464e-08 -1.60416686e-07 5.67520302e-07]] (array([[-4.81027129e-07],[-1.91248031e+00],[-2.49239284e+00]]),)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
-            cv2.calibrateCamera(obj_points_3D,  img_points_2D, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS)
+            cv2.calibrateCamera(obj_points_3D,  img_points_2D, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS,)
 
+        print(f"Calibrate Camera Pass")
+
+        _,R,T = cv2.solvePnP(mark_points_3D,mark_points_2D,cameraMatrix,distCoeffs,flags=cv2.SOLVEPNP_ITERATIVE)
+
+        RMat = cv2.Rodrigues(R)[0]
+        print("Rotation Matrix is ")
+        print(RMat)
 
         #给出了畸变参数
         #print(tvecs)
@@ -85,9 +96,12 @@ def calibrate():
         f.write(name='camera_matrix', val=cameraMatrix)
         f.write(name='distortion_coefficients', val=distCoeffs)
         f.release()
+
+
+
         f = cv2.FileStorage(f'calibrations/extrinsic/extr_Camera{cam + 1}.xml', flags=cv2.FileStorage_WRITE)
-        f.write(name='rvec', val=rvecs[0])
-        f.write(name='tvec', val=tvecs[0])
+        f.write(name='rvec', val=R)
+        f.write(name='tvec', val=T)
 
         f.release()
 

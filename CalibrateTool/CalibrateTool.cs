@@ -1,8 +1,10 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System.IO;
+using System;
 using UnityEditor;
+using UnityEngine;
+//using Unity.Mathematics;
 
 public class CalibrateTool : MonoBehaviour
 {
@@ -106,7 +108,7 @@ public class CalibrateTool : MonoBehaviour
         BeginToCalibrate();
     }
 
-    void BeginToCalibrate() 
+    void BeginToCalibrate()
     {
         if (camerasToCalibrate.Count < 1)
         {
@@ -118,6 +120,7 @@ public class CalibrateTool : MonoBehaviour
         foreach (var cam in camerasToCalibrate)
         {
             WriteMarkPointsScreenPos(cam, cameraIndex);
+            //GetNativeCalibrationByMath(cam);
             cameraIndex++;
         }
         StartCoroutine(Func());
@@ -141,19 +144,48 @@ public class CalibrateTool : MonoBehaviour
             }
             UpdateChessboard();
             // Note the order of codes above.  Different order shows different outcome.
-            if (boardIndex >= chessboardCount) 
+            if (boardIndex >= chessboardCount)
             {
                 break;
             }
         }
     }
 
-    void GenerateMarkPoints() 
+    void GetNativeCalibrationByMath(Camera cam)
     {
-        markPoints = new Vector3[(2*lengthOfMarkPointsSquare) * (2 * lengthOfMarkPointsSquare)];
+        float w = cam.pixelWidth;
+        float h = cam.pixelHeight;
+        float fov = cam.fieldOfView;
+
+        float u_0 = w / 2;
+        float v_0 = h / 2;
+
+        float fx = (h / 2) / (float)System.Math.Tan((fov / 180 * System.Math.PI) / 2);
+
+        //float fx = w / (2 * (math.tan((fov / 2) * (math.PI / 180))));
+        float fy = h / (2 * (float)(Math.Tan((fov / 2) * (Math.PI / 180))));
+
+
+        //float3x3 camIntriMatrix = new float3x3(new float3(fx, 0f, u_0),
+        //                               new float3(0f, fy, v_0),
+        //                               new float3(0f, 0f, 1f));
+
+        //Debug.Log(camIntriMatrix);
+        //Matrix4x4 cameraToWorldMatrix = cam.cameraToWorldMatrix;
+        //Matrix4x4 projectionMatrix = cam.projectionMatrix;
+
+        ////Debug.Log(cam.worldToCameraMatrix);
+        //Debug.Log("[Calib][OpenCV-RightHandedness] " + cam.transform.name + " Rotation Matrix:");
+        //Debug.Log(ConvertUnityWorldToCameraRotationToOpenCV(cam.worldToCameraMatrix));
+        //Debug.Log(cam.projectionMatrix);
+    }
+
+    void GenerateMarkPoints()
+    {
+        markPoints = new Vector3[(2 * lengthOfMarkPointsSquare) * (2 * lengthOfMarkPointsSquare)];
         int index = 0;
 
-        for (int i = - lengthOfMarkPointsSquare; i < lengthOfMarkPointsSquare; i++)
+        for (int i = -lengthOfMarkPointsSquare; i < lengthOfMarkPointsSquare; i++)
         {
             for (int j = -lengthOfMarkPointsSquare; j < lengthOfMarkPointsSquare; j++)
             {
@@ -163,7 +195,7 @@ public class CalibrateTool : MonoBehaviour
             }
         }
 
-        
+
     }
     /// <summary>
     /// Generate the visual chessboard
@@ -172,7 +204,7 @@ public class CalibrateTool : MonoBehaviour
     {
         for (int w = 0; w < widthOfChessboard; w++)
         {
-            for (int h =0; h < heightOfChessboard; h++)
+            for (int h = 0; h < heightOfChessboard; h++)
             {
                 GameObject cornerPoint = new GameObject(w.ToString() + "_" + h.ToString());
                 cornerPoint.transform.position = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE);
@@ -191,7 +223,7 @@ public class CalibrateTool : MonoBehaviour
 
 
 
-    void UpdateChessboard() 
+    void UpdateChessboard()
     {
         boardIndex++;
         System.Random ran = new System.Random();
@@ -214,12 +246,12 @@ public class CalibrateTool : MonoBehaviour
         Vector3[] validMarkPoints = validMarkPointsList.ToArray();
         Vector2[] markPointsScreenPoints = ConvertWorldPointsToScreenPointsOpenCV(validMarkPoints, cam);
         for (int i = 0; i < validMarkPoints.Length; i++)
-        { 
+        {
             float temp = validMarkPoints[i].y;
             validMarkPoints[i].y = validMarkPoints[i].z;
             validMarkPoints[i].z = temp;
-        }     
-        
+        }
+
         string file_name = "markPoints.txt";
         string file_name_3d = "markPoints_3d.txt";
         StreamWriter sw = CreateSW(cameraIndex, file_name);
@@ -251,7 +283,7 @@ public class CalibrateTool : MonoBehaviour
         Vector2[] imagePoints = ConvertWorldPointsToScreenPointsOpenCV(validObjectPoints, cam);
 
         string file_name = boardIndex + ".txt";
-        string file_name_3d =  boardIndex + "_3d.txt";
+        string file_name_3d = boardIndex + "_3d.txt";
 
         StreamWriter sw = CreateSW(cameraIndex, file_name);
         StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
@@ -286,14 +318,14 @@ public class CalibrateTool : MonoBehaviour
         FileInfo fileInfo = new FileInfo(targetParentFolder + "/C" + cameraIdx.ToString() + "/" + filename);
         if (!fileInfo.Exists)
         {
-            sw = fileInfo.CreateText();//´´½¨Ò»¸öÓÃÓÚÐ´Èë UTF-8 ±àÂëµÄÎÄ±¾  
+            sw = fileInfo.CreateText();//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ UTF-8 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½  
             Debug.Log("[IO]File " + filename + " has been inited");
 
             return sw;
         }
         else
         {
-            sw = fileInfo.AppendText();//´ò¿ªÏÖÓÐ UTF-8 ±àÂëÎÄ±¾ÎÄ¼þÒÔ½øÐÐ¶ÁÈ¡  
+            sw = fileInfo.AppendText();//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ UTF-8 ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½Ä¼ï¿½ï¿½Ô½ï¿½ï¿½Ð¶ï¿½È¡  
             return sw;
         }
     }
@@ -342,6 +374,24 @@ public class CalibrateTool : MonoBehaviour
 
     }
 
+    public Matrix4x4 ConvertUnityWorldToCameraRotationToOpenCV(Matrix4x4 worldToCameraMatrix)
+    {
+        // Convert the right-handed coordinate system to left-handed
+        // by negating the z-axis
+        worldToCameraMatrix.SetColumn(2, -worldToCameraMatrix.GetColumn(2));
+
+        // Convert the left-handed rotation matrix to a right-handed
+        // rotation matrix by reversing the order of the columns
+        worldToCameraMatrix = new Matrix4x4(
+            worldToCameraMatrix.GetColumn(0),
+            worldToCameraMatrix.GetColumn(2),
+            worldToCameraMatrix.GetColumn(1),
+            new Vector4(0, 0, 0, 1)
+        );
+
+        return worldToCameraMatrix;
+    }
+
     private void OnDrawGizmos()
     {
         foreach (var go in cornerPointsDic)
@@ -352,11 +402,11 @@ public class CalibrateTool : MonoBehaviour
         }
 
         if (markPoints is null) return;
-     
+
         foreach (var go in markPoints)
         {
             Debug.Log(go);
-            Gizmos.color = new Color(0, 1, 0, 0.5f);
+            Gizmos.color = new Color(0, 1, 0, 0f);
             Gizmos.DrawCube(go, new Vector3(0.01f, 0.01f, 0.01f));
             Handles.Label(go, go.ToString());
         }
