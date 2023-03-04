@@ -34,15 +34,22 @@ def calibrate():
 
 
     for cam in range(NUM_CAM):
-        print(f"Begin to process camera{cam + 1}")
+        print(f"==== Processing Camera {cam + 1} =====")
         obj_points_3D = []  # 3d point in real world space
         img_points_2D = []  # 2d points in image plane.
 
-        file = f'calib/C{cam + 1}/markPoints.txt'
-        file3d = f'calib/C{cam + 1}/markPoints_3d.txt'
+        file_markPoints = f'calib/C{cam + 1}/markPoints.txt'
+        file_markPoints_3d = f'calib/C{cam + 1}/markPoints_3d.txt'
 
-        mark_points_2D = np.array(np.loadtxt(file).astype('float32'))
-        mark_points_3D = np.array(np.loadtxt(file3d).astype('float32'))
+        file_validatePoints = f'calib/C{cam + 1}/validatePoints.txt'
+        file_validatePoints_3d = f'calib/C{cam + 1}/validatePoints_3d.txt'
+
+
+        mark_points_2D = np.array(np.loadtxt(file_markPoints).astype('float32'))
+        mark_points_3D = np.array(np.loadtxt(file_markPoints_3d).astype('float32'))
+
+        validate_Points_2D = np.array(np.loadtxt(file_validatePoints).astype('float32'))
+        validate_Points_3D = np.array(np.loadtxt(file_validatePoints_3d).astype('float32'))
 
 
         for i in range(50):
@@ -83,14 +90,25 @@ def calibrate():
 
         print(f"Calibrate Camera Pass")
 
-        _,R,T = cv2.solvePnP(mark_points_3D,mark_points_2D,cameraMatrix,distCoeffs,flags=cv2.SOLVEPNP_ITERATIVE)
+        #print(mark_points_3D)
+        #print(mark_points_2D)
+        _,R,T = cv2.solvePnP(mark_points_3D,mark_points_2D,cameraMatrix,distCoeffs)
 
         RMat = cv2.Rodrigues(R)[0]
+
         print("Rotation Matrix is ")
         print(RMat)
 
-        #给出了畸变参数
-        #print(tvecs)
+        #
+        mean_error = 0
+        imgpoints2, _ = cv2.projectPoints(validate_Points_3D, R, T, cameraMatrix, distCoeffs)
+        imgpoints2 = np.squeeze(imgpoints2)
+        error = cv2.norm(validate_Points_2D, imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+        mean_error += error
+
+
+        print("total error by validate: {}".format(mean_error/len(validate_Points_3D)) )
+        print("total error by calibrate: {}".format(retval))
 
         f = cv2.FileStorage(f'calibrations/intrinsic/intr_Camera{cam + 1}.xml', flags=cv2.FILE_STORAGE_WRITE)
         f.write(name='camera_matrix', val=cameraMatrix)
@@ -106,7 +124,8 @@ def calibrate():
         f.release()
 
         #print(retval)
-        print(f"==== Calibrate {cam + 1} HAS DONE ====");
+        print(f"==== Calibrate {cam + 1} has done ====");
+        print()
     pass
 
 

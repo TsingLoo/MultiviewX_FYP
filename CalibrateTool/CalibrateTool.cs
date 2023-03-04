@@ -4,6 +4,7 @@ using System.IO;
 using System;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 //using Unity.Mathematics;
 
 public class CalibrateTool : MonoBehaviour
@@ -89,6 +90,8 @@ public class CalibrateTool : MonoBehaviour
     /// </summary>
     Vector3[] markPoints;
 
+    Vector3[] validatePoints;
+
     /// <summary>
     /// Index of chessboard
     /// </summary>
@@ -97,6 +100,7 @@ public class CalibrateTool : MonoBehaviour
     private void Awake()
     {
         GenerateMarkPoints();
+        GenerateValidatePoints();
         GenerateVisualChessboard();
     }
 
@@ -119,7 +123,8 @@ public class CalibrateTool : MonoBehaviour
         int cameraIndex = 0;
         foreach (var cam in camerasToCalibrate)
         {
-            WriteMarkPointsScreenPos(cam, cameraIndex);
+            WriteWorldPointsScreenPos(cam, cameraIndex, markPoints, nameof(markPoints));
+            WriteWorldPointsScreenPos(cam, cameraIndex,validatePoints,nameof(validatePoints));
             //GetNativeCalibrationByMath(cam);
             cameraIndex++;
         }
@@ -194,9 +199,19 @@ public class CalibrateTool : MonoBehaviour
                 index++;
             }
         }
-
-
     }
+
+
+    void GenerateValidatePoints() 
+    {
+        System.Random ran = new System.Random();
+        validatePoints = new Vector3[markPoints.Length];
+        for (int i = 0; i < validatePoints.Length; i++)
+        {
+            validatePoints[i] = new Vector3(markPoints[i].x + NextFloat(ran, -tRandomOffset*0.1f, tRandomOffset*0.1f), 0, markPoints[i].z + NextFloat(ran, -tRandomOffset * 0.1f, tRandomOffset * 0.1f));
+        }
+    }
+
     /// <summary>
     /// Generate the visual chessboard
     /// </summary>
@@ -221,8 +236,6 @@ public class CalibrateTool : MonoBehaviour
         //}
     }
 
-
-
     void UpdateChessboard()
     {
         boardIndex++;
@@ -231,56 +244,65 @@ public class CalibrateTool : MonoBehaviour
         transform.rotation = Quaternion.Euler(NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset));
     }
 
-    void WriteMarkPointsScreenPos(Camera cam, int cameraIndex)
+    void WriteWorldPointsScreenPos(Camera cam, int cameraIndex, Vector3[] arr, string name)
     {
-        List<Vector3> validMarkPointsList = new List<Vector3>();
-        foreach (var markPoint in markPoints)
+        Vector2[] screenPoints = ConvertWorldPointsToScreenPointsOpenCV(arr, cam);
+        List<Vector3> worldPointsList = arr.ToList(); // Convert arr1 to a List<Vector3>
+        List<Vector2> screenPointsList = screenPoints.ToList(); // Convert arr2 to a List<Vector3>
+
+        Rect screenBounds = new Rect(0, 0, Screen.width, Screen.height);
+
+        for (int i = screenPointsList.Count - 1; i >= 0; i--)
         {
-            Vector3 viewPos = cam.WorldToViewportPoint(markPoint);
-            if (viewPos.x >= 0 && viewPos.x <= 1 && viewPos.y >= 0 && viewPos.y <= 1 && viewPos.z > 0)
+            if (!screenBounds.Contains(screenPoints[i]))
             {
-                validMarkPointsList.Add(markPoint);
+                Debug.Log("[Calib] Delete this : " + screenPoints[i]);
+                worldPointsList.RemoveAt(i);
+                screenPointsList.RemoveAt(i);
             }
         }
 
-        Vector3[] validMarkPoints = validMarkPointsList.ToArray();
-        Vector2[] markPointsScreenPoints = ConvertWorldPointsToScreenPointsOpenCV(validMarkPoints, cam);
-        for (int i = 0; i < validMarkPoints.Length; i++)
+        Vector3[] worldPoints = worldPointsList.ToArray(); // Convert the List<Vector3> back to an array
+        screenPoints = screenPointsList.ToArray();
+
+        for (int i = 0; i < worldPoints.Length; i++)
         {
-            float temp = validMarkPoints[i].y;
-            validMarkPoints[i].y = validMarkPoints[i].z;
-            validMarkPoints[i].z = temp;
+            float temp = worldPoints[i].y;
+            worldPoints[i].y = worldPoints[i].z;
+            worldPoints[i].z = temp;
         }
 
-        string file_name = "markPoints.txt";
-        string file_name_3d = "markPoints_3d.txt";
-        StreamWriter sw = CreateSW(cameraIndex, file_name);
-        StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
-        WriteArrayToFile(markPointsScreenPoints, ref sw);
-        WriteArrayToFile(validMarkPoints, ref sw_3d);
+        string file_name_3d = name + "_3d.txt";
+        string file_name = name + ".txt";
 
-        sw.Close();
+        StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
+        StreamWriter sw = CreateSW(cameraIndex, file_name);
+
+        WriteArrayToFile(worldPoints, ref sw_3d);
+        WriteArrayToFile(screenPoints, ref sw);
+
         sw_3d.Close();
+        sw.Close();
     }
 
     void WriteChessboardScreenPos(Camera cam, int cameraIndex)
     {
-        List<Vector3> validObjectPointsList = new List<Vector3>();
+        List<Vector2> screenPointsList = new List<Vector2>();
         List<Vector3> outPutObjList = new List<Vector3>();
 
+        Rect screenBounds = new Rect(0, 0, Screen.width, Screen.height);
 
         foreach (var go in cornerPointsDic)
         {
-            Vector3 viewPos = cam.WorldToViewportPoint(go.Key.transform.position);
-            if (viewPos.x >= 0 && viewPos.x <= 1 && viewPos.y >= 0 && viewPos.y <= 1 && viewPos.z > 0)
+            Vector2 viewPos = cam.WorldToScreenPoint(go.Key.transform.position);
+            if (screenBounds.Contains(viewPos))
             {
-                validObjectPointsList.Add(go.Key.transform.position);
+                screenPointsList.Add(new Vector2(viewPos.x, Screen.height - viewPos.y));
                 outPutObjList.Add(go.Value);
             }
         }
 
-        Vector3[] validObjectPoints = validObjectPointsList.ToArray();
-        Vector2[] imagePoints = ConvertWorldPointsToScreenPointsOpenCV(validObjectPoints, cam);
+        Vector2[] imagePoints = screenPointsList.ToArray();
 
         string file_name = boardIndex + ".txt";
         string file_name_3d = boardIndex + "_3d.txt";
