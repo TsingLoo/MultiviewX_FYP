@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import cv2
 import os
 from datasetParameters import *
+from unitConversion import *
 import numpy as np
 def showPoints(points2D,camIndex):
 
@@ -25,16 +26,16 @@ def showPoints(points2D,camIndex):
     plt.title(camIndex)
     plt.show()
 
-
+#print(get_opencv_coordinates([0,0,0]))
 def calibrate():
     os.makedirs('calibrations/intrinsic', exist_ok=True)
     os.makedirs('calibrations/extrinsic', exist_ok=True)
     size = (IMAGE_WIDTH, IMAGE_HEIGHT)
     #size = (IMAGE_HEIGHT, IMAGE_WIDTH)
 
-
     for cam in range(NUM_CAM):
         print(f"==== Processing Camera {cam + 1} =====")
+
         obj_points_3D = []  # 3d point in real world space
         img_points_2D = []  # 2d points in image plane.
 
@@ -44,13 +45,21 @@ def calibrate():
         file_validatePoints = f'calib/C{cam + 1}/validatePoints.txt'
         file_validatePoints_3d = f'calib/C{cam + 1}/validatePoints_3d.txt'
 
-
         mark_points_2D = np.array(np.loadtxt(file_markPoints).astype('float32'))
         mark_points_3D = np.array(np.loadtxt(file_markPoints_3d).astype('float32'))
 
         validate_Points_2D = np.array(np.loadtxt(file_validatePoints).astype('float32'))
         validate_Points_3D = np.array(np.loadtxt(file_validatePoints_3d).astype('float32'))
 
+        for i in range(0, len(mark_points_3D)):
+            mark_points_3D[i] = get_opencv_coordinates(mark_points_3D[i])
+
+        print(mark_points_3D)
+
+        #print(mark_points_3D)
+
+        for i in range(0, len(validate_Points_3D)):
+            validate_Points_3D[i] = get_opencv_coordinates(validate_Points_3D[i])
 
         for i in range(50):
             file = f'calib/C{cam + 1}/{i}.txt'
@@ -90,7 +99,7 @@ def calibrate():
 
         print(f"Calibrate Camera Pass")
 
-        #print(mark_points_3D)
+        print(mark_points_3D)
         #print(mark_points_2D)
         _,R,T = cv2.solvePnP(mark_points_3D,mark_points_2D,cameraMatrix,distCoeffs)
 
