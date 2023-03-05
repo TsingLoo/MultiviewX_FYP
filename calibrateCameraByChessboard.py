@@ -52,14 +52,17 @@ def calibrate():
         validate_Points_3D = np.array(np.loadtxt(file_validatePoints_3d).astype('float32'))
 
         for i in range(0, len(mark_points_3D)):
-            mark_points_3D[i] = get_opencv_coordinates(mark_points_3D[i])
-
-        print(mark_points_3D)
+            #mark_points_3D[i] = get_opencv_coordinates(mark_points_3D[i])
+            mark_points_3D[i] = process_worldcoord(mark_points_3D[i])
+        #
+        for i in range(0, len(validate_Points_3D)):
+            #validate_Points_3D[i] = get_opencv_coordinates(validate_Points_3D[i])
+            validate_Points_3D[i] = process_worldcoord(validate_Points_3D[i])
 
         #print(mark_points_3D)
 
-        for i in range(0, len(validate_Points_3D)):
-            validate_Points_3D[i] = get_opencv_coordinates(validate_Points_3D[i])
+        #print(mark_points_3D)
+
 
         for i in range(50):
             file = f'calib/C{cam + 1}/{i}.txt'
@@ -99,7 +102,7 @@ def calibrate():
 
         print(f"Calibrate Camera Pass")
 
-        print(mark_points_3D)
+        #print(mark_points_3D)
         #print(mark_points_2D)
         _,R,T = cv2.solvePnP(mark_points_3D,mark_points_2D,cameraMatrix,distCoeffs)
 

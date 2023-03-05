@@ -26,11 +26,21 @@ def read_pom(fpath):
 
 
 def read_gt(cam):
+
+    # 最后一个坐标是脚底的位置
+    # 坐标数组 ... [1723.596   471.1655] [1421.27    544.6304]
+    #visualize_foot_image = points_2d[points_2d[:, 0] == 0, -2:]
+
     gt_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
+    #print(gt_3d)
+    #删去脚底点不在Grid内的人
     gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -3] >= 0, gt_3d[:, -3] <= MAP_WIDTH))[0], :]
     gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -2] >= 0, gt_3d[:, -2] <= MAP_HEIGHT))[0], :]
+
     frame, pid = gt_3d[:, 0], gt_3d[:, 1]
+
     foot_3d_coord = gt_3d[:, -3:-1].transpose()
+    #print(foot_3d_coord)
     pos = get_pos_from_worldcoord(foot_3d_coord)
     return np.stack([frame, pid, pos], axis=1).astype(int)
 

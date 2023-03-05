@@ -24,6 +24,7 @@ def get_pos_from_worldgrid(worldgrid):
 
 
 def get_worldgrid_from_worldcoord(world_coord):
+
     coord_x, coord_y = world_coord
     grid_x = coord_x * MAP_EXPAND
     grid_y = coord_y * MAP_EXPAND
@@ -36,6 +37,8 @@ def get_worldcoord_from_worldgrid(worldgrid):
     :param worldgrid:
     :return:
     """
+
+
     grid_x, grid_y = worldgrid
     coord_x = grid_x / MAP_EXPAND
     coord_y = grid_y / MAP_EXPAND
@@ -58,10 +61,23 @@ def get_pos_from_worldcoord(world_coord):
     grid = get_worldgrid_from_worldcoord(world_coord)
     return get_pos_from_worldgrid(grid)
 
-def get_opencv_coordinates(unity_pos):
-    openCV_Oringin = f'OpenCVOrigin.txt'
-    openCV_Oringin = np.loadtxt(openCV_Oringin).astype('float32')
-    #print(openCV_Oringin)
-    unity_pos = [unity_pos[0] - openCV_Oringin[0], -(unity_pos[2] - openCV_Oringin[2]),
-                         unity_pos[1] - openCV_Oringin[1]]
-    return unity_pos
+def process_worldcoord(unity_pos):
+    result = get_transformed_coordinates(unity_pos)
+    #result = swap_unity23(unity_pos)
+
+    return result
+
+def get_transformed_coordinates(unity_pos):
+    if(len(unity_pos) == 3):
+        result = [unity_pos[0] -  GRID_ORIGIN[0], unity_pos[2] -  GRID_ORIGIN[2], unity_pos[1] - GRID_ORIGIN[1]]
+
+    if(len(unity_pos) == 2):
+        result = [unity_pos[0] -  GRID_ORIGIN[0], unity_pos[2] -  GRID_ORIGIN[2]]
+    return result
+def swap_unity23(unity_pos_3):
+    result = [unity_pos_3[0],unity_pos_3[2],unity_pos_3[1]]
+    return result
+
+def swap_unity12(unity_pos_2):
+    result = [unity_pos_2[0],unity_pos_2[2],unity_pos_2[1]]
+    return result

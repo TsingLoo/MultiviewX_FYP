@@ -24,20 +24,24 @@ public class CalibrateTool : MonoBehaviour
     }
 
     /// <summary>
-    /// Define the targetParentFolder to save the data;
-    /// </summary>
-    public string targetParentFolder = @"../calib/";
-
-    /// <summary>
     /// Add the cameras you want to calibrate into this list
     /// </summary>
     public List<Camera> camerasToCalibrate;
 
     /// <summary>
-    /// Fake chessboard will be generated at this transform
+    /// Define the targetParentFolder to save the data;
+    /// </summary>
+    public string targetParentFolder = @"../CalibrateTool/";
+
+    /// <summary>
+    /// Fake chessboard will be generated from this transform
     /// </summary>
     public Transform chessboardGenerateCenter;
 
+
+    [SerializeField] bool enableLog = false;
+
+    [Header("Chessboard Properties")]
     /// <summary>
     /// The inteval bettween the chessboard to change its transform
     /// </summary>
@@ -63,6 +67,7 @@ public class CalibrateTool : MonoBehaviour
     /// </summary>
     [SerializeField] int heightOfChessboard = 7;
 
+    [Header("Staic Mark Points Properties")]
     /// <summary>
     /// The square length of mark points square
     /// </summary>
@@ -71,8 +76,23 @@ public class CalibrateTool : MonoBehaviour
     /// <summary>
     /// The distance bettween two points
     /// </summary>
-    [SerializeField] float adjacentPointDistance = 1;
+    [SerializeField] float gapBetweenMarkPoints = 1;
 
+    [Header("Dataset Parameters")]
+    /// <summary>
+    /// This transform indicate the Origin of grid of Wildtrack system.
+    /// </summary>
+    public Transform gridOrigin;
+    public int MAP_HEIGHT = 16;
+    public int MAP_WIDTH = 25;
+    public int MAP_EXPAND = 40;
+    public float MAN_RADIUS = 0.16f;
+    public float MAN_HEIGHT = 1.8f;
+    public int IMAGE_WIDTH = 1920;
+    public int IMAGE_HEIGHT = 1080;
+    
+
+    [Header("Others")]
     /// <summary>
     /// Random offsets for updating the chessboard 
     /// </summary>
@@ -99,13 +119,17 @@ public class CalibrateTool : MonoBehaviour
 
     private void Awake()
     {
+        chessboardGenerateCenter.rotation = Quaternion.identity;
         GenerateMarkPoints();
         GenerateValidatePoints();
         GenerateVisualChessboard();
     }
 
+
     void Start()
     {
+        WriteDatasetParametersPy(); 
+        //WriteGridOrigin();
         targetParentFolder = targetParentFolder + "\\calib";
         Debug.Log("[IO][Calib]Calibrate saved in " + targetParentFolder);
         ResetFolder(targetParentFolder);
@@ -151,6 +175,7 @@ public class CalibrateTool : MonoBehaviour
             // Note the order of codes above.  Different order shows different outcome.
             if (boardIndex >= chessboardCount)
             {
+                Debug.Log("[Calib] Chessboard Finished");
                 break;
             }
         }
@@ -185,6 +210,9 @@ public class CalibrateTool : MonoBehaviour
         //Debug.Log(cam.projectionMatrix);
     }
 
+    /// <summary>
+    /// This method indicate the coordinates of the project
+    /// </summary>
     void GenerateMarkPoints()
     {
         markPoints = new Vector3[(2 * lengthOfMarkPointsSquare) * (2 * lengthOfMarkPointsSquare)];
@@ -195,7 +223,7 @@ public class CalibrateTool : MonoBehaviour
             for (int j = -lengthOfMarkPointsSquare; j < lengthOfMarkPointsSquare; j++)
             {
                 //Debug.Log(index);
-                markPoints[index] = chessboardGenerateCenter.transform.position + new Vector3(i * adjacentPointDistance, 0, j * adjacentPointDistance);
+                markPoints[index] = chessboardGenerateCenter.transform.position + new Vector3(i * gapBetweenMarkPoints, 0, j * gapBetweenMarkPoints);
                 index++;
             }
         }
@@ -244,6 +272,31 @@ public class CalibrateTool : MonoBehaviour
         transform.rotation = Quaternion.Euler(NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset));
     }
 
+    void WriteDatasetParametersPy() 
+    {
+        string pyPath = targetParentFolder + "\\datasetParameters.py";
+        if (File.Exists(pyPath))
+        {
+           File.Delete(pyPath);
+        }
+
+        FileInfo fileinfo = new FileInfo(pyPath);
+        StreamWriter pysw = new StreamWriter(pyPath);
+
+        pysw.WriteLine("GRID_ORIGIN = [" + gridOrigin.position.x.ToString() + "," + gridOrigin.position.y.ToString() + "," + gridOrigin.position.z.ToString() + "]");
+        pysw.WriteLine("NUM_CAM = " + camerasToCalibrate.Count().ToString());
+        pysw.WriteLine("CHESSBOARD_COUNT = " + chessboardCount.ToString());
+        pysw.WriteLine(nameof(MAP_HEIGHT) + " = " +  MAP_HEIGHT.ToString());
+        pysw.WriteLine(nameof(MAP_WIDTH) + " = " + MAP_WIDTH.ToString());
+        pysw.WriteLine(nameof(MAP_EXPAND) + " = " + MAP_EXPAND.ToString());
+        pysw.WriteLine(nameof(IMAGE_WIDTH) + " = " + IMAGE_WIDTH.ToString());
+        pysw.WriteLine(nameof(IMAGE_HEIGHT) + " = " + IMAGE_HEIGHT.ToString());
+        pysw.WriteLine(nameof(MAN_HEIGHT) + " = " + MAN_HEIGHT.ToString());
+        pysw.WriteLine(nameof(MAN_RADIUS) + " = " + MAN_RADIUS.ToString());
+
+        pysw.Close();
+    }
+
     void WriteWorldPointsScreenPos(Camera cam, int cameraIndex, Vector3[] arr, string name)
     {
         Vector2[] screenPoints = ConvertWorldPointsToScreenPointsOpenCV(arr, cam);
@@ -256,7 +309,7 @@ public class CalibrateTool : MonoBehaviour
         {
             if (!screenBounds.Contains(screenPoints[i]))
             {
-                Debug.Log("[Calib] Delete this : " + screenPoints[i]);
+                //Debug.Log("[Calib] Delete this : " + screenPoints[i]);
                 worldPointsList.RemoveAt(i);
                 screenPointsList.RemoveAt(i);
             }
@@ -265,12 +318,13 @@ public class CalibrateTool : MonoBehaviour
         Vector3[] worldPoints = worldPointsList.ToArray(); // Convert the List<Vector3> back to an array
         screenPoints = screenPointsList.ToArray();
 
-        for (int i = 0; i < worldPoints.Length; i++)
-        {
-            float temp = worldPoints[i].y;
-            worldPoints[i].y = worldPoints[i].z;
-            worldPoints[i].z = temp;
-        }
+        //for (int i = 0; i < worldPoints.Length; i++)
+        //{
+        //    float temp = worldPoints[i].y;
+        //    worldPoints[i].y = worldPoints[i].z;
+        //    worldPoints[i].z = temp + 5;
+        //    worldPoints[i].x = worldPoints[i].x + 5;
+        //}
 
         string file_name_3d = name + "_3d.txt";
         string file_name = name + ".txt";
@@ -316,9 +370,6 @@ public class CalibrateTool : MonoBehaviour
         sw_3d.Close();
     }
 
-
-
-
     public void ResetFolder(string foldername)
     {
         DirectoryInfo dir = new DirectoryInfo(foldername);
@@ -340,17 +391,21 @@ public class CalibrateTool : MonoBehaviour
         FileInfo fileInfo = new FileInfo(targetParentFolder + "/C" + cameraIdx.ToString() + "/" + filename);
         if (!fileInfo.Exists)
         {
-            sw = fileInfo.CreateText();//����һ������д�� UTF-8 ������ı�  
-            Debug.Log("[IO]File " + filename + " has been inited");
+            sw = fileInfo.CreateText();
+            if (enableLog)
+            {
+                Debug.Log("[IO]File " + filename + " has been inited");
+            }
 
             return sw;
         }
         else
         {
-            sw = fileInfo.AppendText();//������ UTF-8 �����ı��ļ��Խ��ж�ȡ  
+            sw = fileInfo.AppendText();
             return sw;
         }
     }
+
 
     public void WriteArrayToFile(Vector2[] array, ref StreamWriter sw)
     {
@@ -414,7 +469,15 @@ public class CalibrateTool : MonoBehaviour
         return worldToCameraMatrix;
     }
 
+    #region Gizmos
     private void OnDrawGizmos()
+    {
+        DrawChessboard();
+        DrawGrid();
+        DrawMarkPoints();
+    }
+
+    void DrawChessboard() 
     {
         foreach (var go in cornerPointsDic)
         {
@@ -422,15 +485,51 @@ public class CalibrateTool : MonoBehaviour
             Gizmos.DrawCube(go.Key.transform.position, new Vector3(0.01f, 0.01f, 0.01f));
             Handles.Label(go.Key.transform.position, go.Value.ToString());
         }
+    }
 
+    void DrawGrid()
+    {
+        if (gridOrigin == null) return;
+        Gizmos.color = new Color(0, 0, 1, 1f);
+        Gizmos.DrawLine(gridOrigin.transform.position, gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward);
+        Handles.Label(gridOrigin.transform.position + 3 * Vector3.forward, "Grid Height+");
+        for (int i = 0; i < MAP_WIDTH + 1; i++)
+        {
+            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i, 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i, 0, 0));
+            Handles.Label(gridOrigin.transform.position + new Vector3(i, 0, 0), i.ToString());
+            //for (int j = 1; j < MAP_EXPAND; j++)
+            //{
+            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i + j*(1f / MAP_EXPAND), 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0));
+            //}
+        }
+
+        Gizmos.color = new Color(1, 0, 1, 1f);
+        Gizmos.DrawLine(gridOrigin.transform.position, gridOrigin.transform.position + MAP_WIDTH * Vector3.right);
+        Handles.Label(gridOrigin.transform.position + 3 * Vector3.right, "Grid Width+");
+        for (int i = 0; i < MAP_HEIGHT + 1; i++)
+        {
+            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0,0,i), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i));
+            Handles.Label(gridOrigin.transform.position + new Vector3(0, 0, i), i.ToString());
+            //for (int j = 1; j < MAP_EXPAND; j++)
+            //{
+            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0, 0, i+ j * (1f / MAP_EXPAND)), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)));
+            //}
+        }
+
+    
+    }
+
+    void DrawMarkPoints() 
+    {
         if (markPoints is null) return;
 
         foreach (var go in markPoints)
         {
-            Debug.Log(go);
+            //Debug.Log(go);
             Gizmos.color = new Color(0, 1, 0, 0f);
             Gizmos.DrawCube(go, new Vector3(0.01f, 0.01f, 0.01f));
             Handles.Label(go, go.ToString());
         }
     }
+    #endregion
 }

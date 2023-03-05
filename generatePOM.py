@@ -134,6 +134,8 @@ def generate_POM():
                          f'{bbox[pos, 0]} {bbox[pos, 1]} {bbox[pos, 2]} {bbox[pos, 3]}\n')
 
         foot_3d = get_worldcoord_from_pos(np.arange(len(notvisible)))
+
+        #print(notvisible)
         foot_3d = np.concatenate([foot_3d, np.zeros([1, len(notvisible)])], axis=0).transpose()[
                   (1 - notvisible).astype(bool), :].reshape([1, -1, 3])
 
