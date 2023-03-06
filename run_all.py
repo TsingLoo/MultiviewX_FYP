@@ -1,5 +1,4 @@
 from calibrateCameraByChessboard import calibrate
-#from calibrateCameraByChessboard import calibrate
 from generatePOM import generate_POM
 from generateAnnotation import annotate
 
