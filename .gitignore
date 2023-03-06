@@ -129,6 +129,6 @@ dmypy.json
 /Image_subsets
 /annotations_positions
 /matchings
-/calib
 /calibrations
 gt.txt
+/calib/
