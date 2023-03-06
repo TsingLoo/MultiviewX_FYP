@@ -17,6 +17,16 @@ CalibrateTool是一个在Unity3D中为一个或多个相机，产生多个虚拟
 
 同时，CalibrateTool 可以完成一些运行 [MultiviewX_FYP](https://github.com/TsingLoo/MultiviewX_FYP) 所需要的设置，诸如设置地图大小、地图格点起始位置等。
 
+
+
+下载示例文件[***sample.zip***](https://images-1310204883.cos.ap-nanjing.myqcloud.com/sample.zip)，将其子文件夹`calib`、`Image_subsets`、`matchings`拖入到 MultiviewX_FYP 文件夹下。运行`run_all.py`
+
+```shell
+python run_all.py
+```
+
+
+
 ## Overview
 
 The MultiviewX dataset dedicates to multiview synthetic pedestrian detection. Using pedestrian models from [PersonX](https://github.com/sxzrt/Dissecting-Person-Re-ID-from-the-Viewpoint-of-Viewpoint), in Unity, we build a novel synthetic dataset MultiviewX. It follows the [WILDTRACK dataset](https://www.epfl.ch/labs/cvlab/data/data-wildtrack/) for set-up, annotation, and structure. 
@@ -26,22 +36,6 @@ The MultiviewX dataset dedicates to multiview synthetic pedestrian detection. Us
 The MultiviewX dataset is generated on a 25 meter by 16 meter playground. It has 6 cameras that has overlapping field-of-view. The images in MultiviewX dataset are of high resolution, 1920x1080, and are synchronized. To fully exploit the complementary views, calibrations are also provided in MultiviewX dataset. 
 
 ![alt text](https://hou-yz.github.io/images/eccv2020_mvdet_multiviewx_demo.gif "Detection results on MultiviewX dataset using MVDet")
-
-
-## Downloads
-Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHfgP9BJt2g7R_Ku4X3Pg?e=GFGeVn) for download.
-
-## Toolkits for MultiviewX dataset.
-
-This repo includes the toolkits and utilities for bulding MultiviewX dataset.
-
-How to's
-- download (from [link](https://anu365-my.sharepoint.com/:u:/g/personal/u6852178_anu_edu_au/EZ9hISq6FxBItIsdIDkapmUBGIK7Fn9LVIAuUT8NltKDBw?e=atMYbI)) and copy the 2d/3d bbox annotations into `/matchings`.
-- run the following command.
-```shell script
-python run_all.py
-```
-- done.
 
 ## Evaluation
 
