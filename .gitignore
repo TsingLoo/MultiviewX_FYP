@@ -138,5 +138,5 @@ datasetParameters.py
 /annotations_positions
 bbox_cam*.png
 rectangles.pom
-
+perception/*
 
