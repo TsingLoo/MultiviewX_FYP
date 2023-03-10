@@ -38,7 +38,19 @@ def perceptionHandler(keep):
     sensorDic = {}
 
     perception_path = f'perception'
+
     dataSetLists=os.listdir(perception_path)
+    if(len(dataSetLists) == 0 ):
+        print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
+$$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
+$$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+$$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
+$$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
+$$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+$$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
+\__|      \__|  \__|\______|\________|\________|\_______/ ''')
+        print("perceptionHandler.py failed, there is no valid datasets given by Unity Perception, please use Unity Perception to generate new data")
+        sys.exit()
     dataSetLists.sort(key=lambda x:os.path.getmtime((perception_path +"\\"+x)))
 
     path = os.path.join(perception_path, dataSetLists[-1])
@@ -70,7 +82,15 @@ def perceptionHandler(keep):
                     shutil.rmtree(path)
                 if (choice == 'n' or choice == 'N'):
                     print(path + " remains unchanged")
-            print("Run all aborted, please use Unity to generate new data")
+                    print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
+            $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
+            $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+            $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
+            $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
+            $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+            $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
+            \__|      \__|  \__|\______|\________|\________|\_______/ ''')
+            print("run_all.py failed, please use Unity Perception to generate new data")
             sys.exit()
 
     prepare()

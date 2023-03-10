@@ -1,16 +1,13 @@
 import shutil
-import time
 import os
-
 import datasetParameters
-
 import argparse
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", action = "store_true",help="Annotate and show the bbox on the first frame of each camera or not.")
 parser.add_argument("-s", action = "store_true",help="Save the bbox on the first frame of each camera or not.")
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
 parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
-
 args = parser.parse_args()
 
 from calibrateCameraByChessboard import calibrate
@@ -48,11 +45,16 @@ def finish():
             if(os.path.exists(f"bbox_cam{i+1}.png")):
                 os.remove(f"bbox_cam{i+1}.png")
 
+    if(args.f is not True):
+        if (os.path.exists(f"rectangles.pom")):
+            os.remove(f"rectangles.pom")
+        if(os.path.exists(f"calibrations")):
+            shutil.rmtree(f"calibrations")
+
     print("==== All Done ====")
     print(f"Check {os.path.join(os.getcwd(), datasetParameters.DATASET_NAME)} to get your data!")
 
 if __name__ == '__main__':
-
 
     note()
     if(args.f):

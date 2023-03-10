@@ -90,7 +90,9 @@ public class CalibrateTool : MonoBehaviour
     public float MAN_HEIGHT = 1.8f;
     public int IMAGE_WIDTH = 1920;
     public int IMAGE_HEIGHT = 1080;
-    
+
+    //format the file name of frames, 0001.png for RW = 4 , 00001.png for RW = 5
+    public int RJUST_WIDTH = 4;
 
     [Header("Others")]
     /// <summary>
@@ -293,7 +295,9 @@ public class CalibrateTool : MonoBehaviour
         pysw.WriteLine(nameof(IMAGE_HEIGHT) + " = " + IMAGE_HEIGHT.ToString());
         pysw.WriteLine(nameof(MAN_HEIGHT) + " = " + MAN_HEIGHT.ToString());
         pysw.WriteLine(nameof(MAN_RADIUS) + " = " + MAN_RADIUS.ToString());
-
+        pysw.WriteLine(nameof(RJUST_WIDTH) + " = " + RJUST_WIDTH.ToString());
+        pysw.WriteLine(@"NUM_FRAMES = 0");
+        pysw.WriteLine(@"DATASET_NAME = ''");
         pysw.Close();
     }
 
@@ -499,7 +503,7 @@ public class CalibrateTool : MonoBehaviour
             Handles.Label(gridOrigin.transform.position + new Vector3(i, 0, 0), i.ToString());
             //for (int j = 1; j < MAP_EXPAND; j++)
             //{
-            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i + j*(1f / MAP_EXPAND), 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0));
+            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0));
             //}
         }
 
@@ -512,7 +516,7 @@ public class CalibrateTool : MonoBehaviour
             Handles.Label(gridOrigin.transform.position + new Vector3(0, 0, i), i.ToString());
             //for (int j = 1; j < MAP_EXPAND; j++)
             //{
-            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0, 0, i+ j * (1f / MAP_EXPAND)), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)));
+            //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)));
             //}
         }
 
