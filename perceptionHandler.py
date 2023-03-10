@@ -1,9 +1,27 @@
 import os
 import json
 import shutil
+import sys
+import time
 from glob import glob
 import datasetParameters
 
+def prepare():
+    time_stamp = time.strftime('%H%M%S',time.localtime())
+    dataset_name = time_stamp + f"_C{datasetParameters.NUM_CAM}_F{datasetParameters.NUM_FRAMES}"
+    if os.path.exists(dataset_name):
+        print()
+        print(f"It seems that PACK {dataset_name} has already been")
+        print(f"Do you want to replace it with the newest data? Or it will be saved as _{dataset_name}")
+        choice = ""
+        while (choice != 'y' and choice != 'Y' and choice != 'n' and choice != 'N'):
+            choice = input("Input:(y/n)")
+            if (choice == 'y' or choice == 'Y'):
+                shutil.rmtree(dataset_name)
+            if (choice == 'n' or choice == 'N'):
+                dataset_name = "_" + dataset_name
+    os.mkdir(dataset_name,777)
+    datasetParameters.DATASET_NAME = dataset_name
 
 def movefile(srcfile,dstpath):                       # 移动函数
     if not os.path.isfile(srcfile):
@@ -16,7 +34,7 @@ def movefile(srcfile,dstpath):                       # 移动函数
         shutil.move(srcfile, os.path.join(dstpath , fname))          # 移动文件
         print ("move %s -> %s"%(srcfile, os.path.join(dstpath , fname)))
 
-def perceptionHandler():
+def perceptionHandler(keep):
     sensorDic = {}
 
     perception_path = f'perception'
@@ -39,20 +57,25 @@ def perceptionHandler():
             sensorDic.update(tuple)
 
     for RGBdir in rgbLists[1:]:
+        datasetParameters.NUM_FRAMES = len(os.listdir(os.path.join(path, RGBdir)))
         if(len(os.listdir(os.path.join(path, RGBdir))) == 0):
-            print( path + " has been processed")
+            print( path + " has been processed, there is no available fresh data")
             print("Do you want to delete this directory?")
+
             choice = ""
             while (choice != 'y' and choice != 'Y' and choice != 'n' and choice != 'N'):
                 choice = input("Input:(y/n)")
                 if (choice == 'y' or choice == 'Y'):
+                    print(f"{path} removed")
                     shutil.rmtree(path)
                 if (choice == 'n' or choice == 'N'):
                     print(path + " remains unchanged")
-                    return
-            return
+            print("Run all aborted, please use Unity to generate new data")
+            sys.exit()
 
-    Image_subsets_path = f'Image_subsets'
+    prepare()
+
+    Image_subsets_path = os.path.join(datasetParameters.DATASET_NAME, f'Image_subsets')
 
     if os.path.exists(Image_subsets_path):
         print()
@@ -83,8 +106,11 @@ def perceptionHandler():
                       os.path.join(os.path.join(Image_subsets_path, "C" + sensorDic[RGBdir]), string.rjust(datasetParameters.RJUST_WIDTH, '0') + "." + RGBImage.split(".")[1]))
             imageIndex = imageIndex + 1
 
+    if(not keep):
+        print(f"Delete {path}")
+        shutil.rmtree(path)
 
     print(Image_subsets_path + " Generation Done")
 
 if __name__ == '__main__':
-    perceptionHandler()
+    perceptionHandler(False)

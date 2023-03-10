@@ -1,6 +1,7 @@
 import os
 import cv2
-from datasetParameters import *
+
+import datasetParameters
 from unitConversion import *
 
 
@@ -96,15 +97,18 @@ def generate_POM():
         extrinsic_xml = f'extr_Camera{i + 1}.xml'
         intrinsic_camera_matrix_filenames.append(intrinsic_xml)
         extrinsic_camera_matrix_filenames.append(extrinsic_xml)
-
-    fpath = 'rectangles.pom'
+    DATASET_NAME = datasetParameters.DATASET_NAME
+    calibration_path = os.path.join(datasetParameters.DATASET_NAME, "calibrations")
+    intrinsic_path = os.path.join(calibration_path, f'intrinsic')
+    extrinsic_path = os.path.join(calibration_path, f'extrinsic')
+    fpath = os.path.join(DATASET_NAME,'rectangles.pom')
     if os.path.exists(fpath):
         os.remove(fpath)
     fp = open(fpath, 'w')
     errors = []
     for cam in range(NUM_CAM):
 
-        fp_calibration = cv2.FileStorage(f'calibrations/intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
+        fp_calibration = cv2.FileStorage(os.path.join(intrinsic_path,  f'{intrinsic_camera_matrix_filenames[cam]}'),
                                          flags=cv2.FILE_STORAGE_READ)
 
         #取得给定的相机参数
@@ -112,7 +116,7 @@ def generate_POM():
             'distortion_coefficients').mat()
 
         fp_calibration.release()
-        fp_calibration = cv2.FileStorage(f'calibrations/extrinsic/{extrinsic_camera_matrix_filenames[cam]}',
+        fp_calibration = cv2.FileStorage(os.path.join(extrinsic_path,f'{extrinsic_camera_matrix_filenames[cam]}')  ,
                                          flags=cv2.FILE_STORAGE_READ)
         rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
         #取得给定的相机外参

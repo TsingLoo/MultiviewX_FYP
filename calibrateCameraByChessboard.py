@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import cv2
 import os
-from datasetParameters import *
+
+import datasetParameters
 from unitConversion import *
 import numpy as np
+
 def showPoints(points2D,camIndex):
 
     try:
@@ -28,8 +30,11 @@ def showPoints(points2D,camIndex):
 
 #print(get_opencv_coordinates([0,0,0]))
 def calibrate():
-    os.makedirs('calibrations/intrinsic', exist_ok=True)
-    os.makedirs('calibrations/extrinsic', exist_ok=True)
+    DATASET_NAME = os.path.join( datasetParameters.DATASET_NAME, "calibrations")
+    intrinsic_path = os.path.join(DATASET_NAME,f'intrinsic')
+    extrinsic_path = os.path.join(DATASET_NAME, f'extrinsic')
+    os.makedirs(intrinsic_path, exist_ok=True)
+    os.makedirs(extrinsic_path, exist_ok=True)
     size = (IMAGE_WIDTH, IMAGE_HEIGHT)
     #size = (IMAGE_HEIGHT, IMAGE_WIDTH)
 
@@ -122,14 +127,14 @@ def calibrate():
         print("total error by validate: {}".format(mean_error/len(validate_Points_3D)) )
         print("total error by calibrate: {}".format(retval))
 
-        f = cv2.FileStorage(f'calibrations/intrinsic/intr_Camera{cam + 1}.xml', flags=cv2.FILE_STORAGE_WRITE)
+        f = cv2.FileStorage(os.path.join(intrinsic_path,f'intr_Camera{cam + 1}.xml') , flags=cv2.FILE_STORAGE_WRITE)
         f.write(name='camera_matrix', val=cameraMatrix)
         f.write(name='distortion_coefficients', val=distCoeffs)
         f.release()
 
 
 
-        f = cv2.FileStorage(f'calibrations/extrinsic/extr_Camera{cam + 1}.xml', flags=cv2.FileStorage_WRITE)
+        f = cv2.FileStorage(os.path.join(extrinsic_path, f'extr_Camera{cam + 1}.xml'), flags=cv2.FileStorage_WRITE)
         f.write(name='rvec', val=R)
         f.write(name='tvec', val=T)
 

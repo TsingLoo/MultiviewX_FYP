@@ -139,4 +139,4 @@ datasetParameters.py
 bbox_cam*.png
 rectangles.pom
 perception/*
-
+*_C*_F*

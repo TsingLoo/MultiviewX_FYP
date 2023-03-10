@@ -4,6 +4,8 @@ import json
 import matplotlib.pyplot as plt
 import cv2
 from PIL import Image
+
+import datasetParameters
 from unitConversion import *
 
 
@@ -55,8 +57,9 @@ def create_pid_annotation(pid, pos, bbox_by_pos_cam):
     return person_annotation
 
 
-def annotate():
-    bbox_by_pos_cam = read_pom('rectangles.pom')
+def annotate(b,s):
+    DATASET_NAME = datasetParameters.DATASET_NAME
+    bbox_by_pos_cam = read_pom(os.path.join(DATASET_NAME,'rectangles.pom'))
     gts = []
     for cam in range(NUM_CAM):
         gt = read_gt(cam)
@@ -65,7 +68,7 @@ def annotate():
     gts = np.unique(gts, axis=0)
     print(f'average persons per frame: {gts.shape[0] / len(np.unique(gts[:, 0]))}')
     pids_dict = {}
-    os.makedirs('annotations_positions', exist_ok=True)
+    os.makedirs(os.path.join(DATASET_NAME,'annotations_positions'), exist_ok=True)
     for frame in np.unique(gts[:, 0]):
         gts_frame = gts[gts[:, 0] == frame, :]
         annotations = []
@@ -74,21 +77,22 @@ def annotate():
             if pid not in pids_dict:
                 pids_dict[pid] = len(pids_dict)
             annotations.append(create_pid_annotation(pids_dict[pid], pos, bbox_by_pos_cam))
-        with open('annotations_positions/{:05d}.json'.format(frame), 'w') as fp:
+        with open(os.path.join(DATASET_NAME,'annotations_positions/{:05d}.json'.format(frame)), 'w') as fp:
             json.dump(annotations, fp, indent=4)
         if frame == 0:
             for cam in range(NUM_CAM):
-                img = Image.open(f'Image_subsets/C{cam + 1}/0000.png')
-                img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-                for anno in annotations:
-                    anno = anno['views'][cam]
-                    bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
-                    if bbox[0] == -1 and bbox[1] == -1:
-                        continue
-                    cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                if((s is True) or (b is True)):
+                    img = Image.open(os.path.join(DATASET_NAME,f'Image_subsets/C{cam + 1}/0000.png'))
+                    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+                    for anno in annotations:
+                        anno = anno['views'][cam]
+                        bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
+                        if bbox[0] == -1 and bbox[1] == -1:
+                            continue
+                        cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
 
-                    cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                    cv2.putText(img, str(bbox[2:]), tuple(bbox[2:]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                        cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                        cv2.putText(img, str(bbox[2:]), tuple(bbox[2:]),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
                     '''cv2.circle(img, (1506,740), 5, (0, 255, 0), -1)
                     cv2.putText(img, str((1506,740)), (1626,650),
@@ -141,14 +145,17 @@ def annotate():
                     cv2.circle(img, (1001, 467), 5, (0, 0, 255), -1)
                     cv2.putText(img, str((1001, 467)), (1682, 496),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)'''
-                img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-                img.save(f'bbox_cam{cam + 1}.png')
-                plt.imshow(img)
-                plt.show()
-                pass
+                    img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                    if(s is True):
+                        img.save(f'bbox_cam{cam + 1}.png')
+                    if(b is True):
+                        plt.imshow(img)
+                        plt.show()
+                    pass
 
     pass
+    print("==== Annotation Done ====")
 
 
 if __name__ == '__main__':
-    annotate()
+    annotate(False,False)
