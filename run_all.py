@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-a", action = "store_true",help="Annotate and show the bbox on the first frame of each camera or not.")
 parser.add_argument("-s", action = "store_true",help="Save the bbox on the first frame of each camera or not.")
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
+parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
 
 args = parser.parse_args()
 
@@ -36,6 +37,8 @@ def note():
     print(f"Annotate and show bbox: {args.a}")
     print(f"Save bbox: {args.s}")
     print(f"Keep Perception remains: {args.k}")
+    print(f"Force calibrate and generate POM: {args.f}")
+
     print("==== Args ====")
     print()
 def finish():
@@ -45,18 +48,21 @@ def finish():
             if(os.path.exists(f"bbox_cam{i+1}.png")):
                 os.remove(f"bbox_cam{i+1}.png")
 
-    print(f"Check {datasetParameters.DATASET_NAME} to get your data!")
+    print("==== All Done ====")
+    print(f"Check {os.path.join(os.getcwd(), datasetParameters.DATASET_NAME)} to get your data!")
 
 if __name__ == '__main__':
 
 
     note()
-    perceptionHandler(args.k)
-
-    calibrate()
-    generate_POM()
-    annotate(args.a,args.s)
-
+    if(args.f):
+        calibrate()
+        generate_POM()
+    else:
+        perceptionHandler(args.k)
+        calibrate()
+        generate_POM()
+        annotate(args.a,args.s)
     finish()
 
 
