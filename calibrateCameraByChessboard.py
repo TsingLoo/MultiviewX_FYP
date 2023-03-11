@@ -69,7 +69,7 @@ def calibrate():
         #print(mark_points_3D)
 
 
-        for i in range(50):
+        for i in range(datasetParameters.CHESSBOARD_COUNT):
             file = f'calib/C{cam + 1}/{i}.txt'
             file3d = f'calib/C{cam + 1}/{i}_3d.txt'
             if os.path.exists(file) and os.path.exists(file3d):
@@ -78,7 +78,7 @@ def calibrate():
                     os.remove(file3d)  # 删除这个文件
                 else:
                     corners2 = np.loadtxt(file)
-                    if(len(corners2)>5):
+                    if(len(corners2)>10):
                         corners2 = np.array(corners2.astype('float32'))
                         obj_3D = np.array(np.loadtxt(file3d).astype('float32'))
                         # print(type(obj_3D))
@@ -104,6 +104,8 @@ def calibrate():
         #[[ 9.46976752e-07 -1.57584887e-06  1.76995464e-08 -1.60416686e-07 5.67520302e-07]] (array([[-4.81027129e-07],[-1.91248031e+00],[-2.49239284e+00]]),)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
             cv2.calibrateCamera(obj_points_3D,  img_points_2D, size, cameraMatrix, None,flags = cv2.CALIB_USE_INTRINSIC_GUESS,)
+
+
 
         print(f"Calibrate Camera Pass")
 
