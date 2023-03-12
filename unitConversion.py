@@ -1,3 +1,4 @@
+import datasetParameters
 from datasetParameters import *
 import numpy as np
 
@@ -68,7 +69,10 @@ def process_worldcoord(unity_pos):
     return result
 
 def get_transformed_coordinates(unity_pos):
+    unity_pos = unity_pos / datasetParameters.Scaling
+
     if(len(unity_pos) == 3):
+
         result = [unity_pos[0] -  GRID_ORIGIN[0], unity_pos[2] -  GRID_ORIGIN[2], unity_pos[1] - GRID_ORIGIN[1]]
 
     if(len(unity_pos) == 2):
