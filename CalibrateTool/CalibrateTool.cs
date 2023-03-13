@@ -23,6 +23,7 @@ public class CalibrateTool : MonoBehaviour
         }
     }
 
+    [Header("Main Properties")]
     /// <summary>
     /// Add the cameras you want to calibrate into this list
     /// </summary>
@@ -37,6 +38,12 @@ public class CalibrateTool : MonoBehaviour
     /// Fake chessboard will be generated from this transform
     /// </summary>
     public Transform chessboardGenerateCenter;
+    
+    /// <summary>
+    /// Scaling of OpenCV coordinate
+    /// </summary>
+    [Range(0, 10f)]
+    public float Scaling = 1;
 
 
     [SerializeField] bool enableLog = false;
@@ -77,6 +84,10 @@ public class CalibrateTool : MonoBehaviour
     /// The distance bettween two points
     /// </summary>
     [SerializeField] float gapBetweenMarkPoints = 1;
+
+    [SerializeField] GameObject humanModel;
+    [SerializeField] bool showModel = false;
+    GameObject go;
 
     [Header("Dataset Parameters")]
     /// <summary>
@@ -254,7 +265,7 @@ public class CalibrateTool : MonoBehaviour
                 GameObject cornerPoint = new GameObject(w.ToString() + "_" + h.ToString());
                 cornerPoint.transform.position = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE);
                 cornerPoint.transform.parent = transform;
-                cornerPointsDic.Add(cornerPoint, new Vector3(w * SQUARE_SIZE, h * SQUARE_SIZE, 0));
+                cornerPointsDic.Add(cornerPoint, new Vector3(w * SQUARE_SIZE/Scaling, h * SQUARE_SIZE/Scaling, 0));
             }
         }
         gameObject.transform.position = chessboardGenerateCenter.transform.position;
@@ -296,6 +307,7 @@ public class CalibrateTool : MonoBehaviour
         pysw.WriteLine(nameof(MAN_HEIGHT) + " = " + MAN_HEIGHT.ToString());
         pysw.WriteLine(nameof(MAN_RADIUS) + " = " + MAN_RADIUS.ToString());
         pysw.WriteLine(nameof(RJUST_WIDTH) + " = " + RJUST_WIDTH.ToString());
+        pysw.WriteLine(nameof(Scaling) + "=" + Scaling.ToString()); 
         pysw.WriteLine(@"NUM_FRAMES = 0");
         pysw.WriteLine(@"DATASET_NAME = ''");
         pysw.Close();
@@ -430,6 +442,7 @@ public class CalibrateTool : MonoBehaviour
         // Loop through each element in the array and write it to the file
         foreach (Vector3 element in array)
         {
+
             sw.WriteLine(element.x + " " + element.y + " " + element.z);
         }
         //Debug.Log("[IO]Vector3 array written to file: " + filename + ".txt");
@@ -478,6 +491,7 @@ public class CalibrateTool : MonoBehaviour
     {
         DrawChessboard();
         DrawGrid();
+        DrawScaling();
         DrawMarkPoints();
     }
 
@@ -495,12 +509,12 @@ public class CalibrateTool : MonoBehaviour
     {
         if (gridOrigin == null) return;
         Gizmos.color = new Color(0, 0, 1, 1f);
-        Gizmos.DrawLine(gridOrigin.transform.position, gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward);
+        //Gizmos.DrawLine(gridOrigin.transform.position * Scaling, gridOrigin.transform.position * Scaling + MAP_HEIGHT * Scaling * Vector3.forward);
         Handles.Label(gridOrigin.transform.position + 3 * Vector3.forward, "Grid Height+");
         for (int i = 0; i < MAP_WIDTH + 1; i++)
         {
-            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i, 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i, 0, 0));
-            Handles.Label(gridOrigin.transform.position + new Vector3(i, 0, 0), i.ToString());
+            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i, 0, 0) * Scaling, gridOrigin.transform.position + MAP_HEIGHT * Scaling * Vector3.forward + new Vector3(i, 0, 0) * Scaling);
+            Handles.Label(gridOrigin.transform.position + new Vector3(i, 0, 0) * Scaling, i.ToString());
             //for (int j = 1; j < MAP_EXPAND; j++)
             //{
             //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0), gridOrigin.transform.position + MAP_HEIGHT * Vector3.forward + new Vector3(i + j * (1f / MAP_EXPAND), 0, 0));
@@ -508,19 +522,88 @@ public class CalibrateTool : MonoBehaviour
         }
 
         Gizmos.color = new Color(1, 0, 1, 1f);
-        Gizmos.DrawLine(gridOrigin.transform.position, gridOrigin.transform.position + MAP_WIDTH * Vector3.right);
+        //Gizmos.DrawLine(gridOrigin.transform.position, gridOrigin.transform.position + MAP_WIDTH * Vector3.right);
         Handles.Label(gridOrigin.transform.position + 3 * Vector3.right, "Grid Width+");
         for (int i = 0; i < MAP_HEIGHT + 1; i++)
         {
-            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0,0,i), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i));
-            Handles.Label(gridOrigin.transform.position + new Vector3(0, 0, i), i.ToString());
+            Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0,0,i) * Scaling, gridOrigin.transform.position + MAP_WIDTH * Scaling * Vector3.right + new Vector3(0, 0, i) * Scaling);
+            Handles.Label(gridOrigin.transform.position + new Vector3(0, 0, i) * Scaling, i.ToString());
             //for (int j = 1; j < MAP_EXPAND; j++)
             //{
             //    Gizmos.DrawLine(gridOrigin.transform.position + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)), gridOrigin.transform.position + MAP_WIDTH * Vector3.right + new Vector3(0, 0, i + j * (1f / MAP_EXPAND)));
             //}
         }
+    }
 
-    
+    void DrawScaling() 
+    {
+        Gizmos.color = new Color(0, 1, 0, 1f);
+
+        Vector3 footPos = gridOrigin.transform.position + new Vector3(MAP_WIDTH*0.5f, 0, MAP_HEIGHT * 0.5f) * Scaling;
+
+        Handles.Label(footPos + Vector3.left * Scaling +  new Vector3(0, MAN_HEIGHT, 0) * Scaling, MAN_HEIGHT.ToString());
+        Gizmos.DrawLine(footPos + Vector3.left * Scaling, footPos + Vector3.left * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
+        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.left * Scaling + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
+        Gizmos.DrawLine(footPos + Vector3.back * Scaling, footPos + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
+        Gizmos.DrawLine(footPos, footPos + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
+        Gizmos.DrawLine(footPos, footPos + Vector3.left * Scaling);
+        Gizmos.DrawLine(footPos, footPos + Vector3.back * Scaling);
+        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.left * Scaling);
+        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.back * Scaling);
+        Gizmos.DrawLine(footPos + new Vector3(0, MAN_HEIGHT, 0) * Scaling, footPos + Vector3.left * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
+
+
+
+        for (int j = 0; j < MAP_EXPAND+ 1; j++)
+        {
+            Gizmos.DrawLine(footPos + new Vector3( -j * (1f / MAP_EXPAND), 0, 0) * Scaling, footPos +  Vector3.back*Scaling + new Vector3( - j * (1f / MAP_EXPAND), 0, 0) * Scaling);
+            Gizmos.DrawLine(footPos + new Vector3(-j * (1f / MAP_EXPAND), 0, 0)* Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling, footPos + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling + new Vector3(-j * (1f / MAP_EXPAND), 0, 0) * Scaling);
+        }
+
+        if (Application.isPlaying)
+        {
+            if (go != null)
+            {
+                Destroy(go);
+            }
+
+            return;
+
+        }
+
+        if (!showModel)
+        {
+            if (go != null) 
+            {
+                go.SetActive(false);
+            }
+
+            GameObject[] modelgo = GameObject.FindGameObjectsWithTag("EditorOnly");
+            foreach (var mgo in modelgo)
+            { 
+                mgo.SetActive(false);
+                Destroy(mgo);
+            }
+            return;
+        }
+        else
+        {
+            if (go != null)
+            {
+                go.SetActive(true);
+            }
+
+        }
+
+        if (humanModel != null && go == null)
+        {
+            go = Instantiate(humanModel, footPos + Vector3.left * 0.5f * Scaling + Vector3.back * 0.5f * Scaling, Quaternion.identity);
+            go.transform.localScale = Vector3.one * Scaling;
+            go.name = "Scaling Model";
+            go.tag = "EditorOnly";
+        }
+        
+
     }
 
     void DrawMarkPoints() 
@@ -530,9 +613,9 @@ public class CalibrateTool : MonoBehaviour
         foreach (var go in markPoints)
         {
             //Debug.Log(go);
-            Gizmos.color = new Color(0, 1, 0, 0f);
-            Gizmos.DrawCube(go, new Vector3(0.01f, 0.01f, 0.01f));
-            Handles.Label(go, go.ToString());
+            Gizmos.color = new Color(0, 1, 0, 0.4f);
+            Gizmos.DrawCube(go*Scaling, new Vector3(0.01f, 0.01f, 0.01f));
+            Handles.Label(go*Scaling, go.ToString());
         }
     }
     #endregion
