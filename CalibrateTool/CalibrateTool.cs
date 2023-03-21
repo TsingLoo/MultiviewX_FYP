@@ -5,6 +5,8 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System.Threading.Tasks;
+
 //using Unity.Mathematics;
 
 public class CalibrateTool : MonoBehaviour
@@ -23,7 +25,11 @@ public class CalibrateTool : MonoBehaviour
         }
     }
 
-    [Header("Main Properties")]
+    [Range(0, 10f)]   
+    public float Scaling= 1;
+
+
+
     /// <summary>
     /// Add the cameras you want to calibrate into this list
     /// </summary>
@@ -38,12 +44,6 @@ public class CalibrateTool : MonoBehaviour
     /// Fake chessboard will be generated from this transform
     /// </summary>
     public Transform chessboardGenerateCenter;
-    
-    /// <summary>
-    /// Scaling of OpenCV coordinate
-    /// </summary>
-    [Range(0, 10f)]
-    public float Scaling = 1;
 
 
     [SerializeField] bool enableLog = false;
@@ -87,6 +87,7 @@ public class CalibrateTool : MonoBehaviour
 
     [SerializeField] GameObject humanModel;
     [SerializeField] bool showModel = false;
+
     GameObject go;
 
     [Header("Dataset Parameters")]
@@ -101,6 +102,8 @@ public class CalibrateTool : MonoBehaviour
     public float MAN_HEIGHT = 1.8f;
     public int IMAGE_WIDTH = 1920;
     public int IMAGE_HEIGHT = 1080;
+    [HideInInspector]
+    public string PERCEPTION_PATH = @"f'perception'";
 
     //format the file name of frames, 0001.png for RW = 4 , 00001.png for RW = 5
     public int RJUST_WIDTH = 4;
@@ -130,6 +133,11 @@ public class CalibrateTool : MonoBehaviour
     /// </summary>
     int boardIndex = 0;
 
+    bool hasWrittenCalib = false;
+    List<List<Vector2[]>> pointsLists2d;
+    List<List<Vector3[]>> pointsLists3d;
+
+
     private void Awake()
     {
         chessboardGenerateCenter.rotation = Quaternion.identity;
@@ -144,16 +152,28 @@ public class CalibrateTool : MonoBehaviour
         WriteDatasetParametersPy(); 
         //WriteGridOrigin();
         targetParentFolder = targetParentFolder + "\\calib";
-        Debug.Log("[IO][Calib]Calibrate saved in " + targetParentFolder);
+        Debug.Log("[CalibrateTool][IO]Calibrate saved in " + targetParentFolder);
         ResetFolder(targetParentFolder);
+
+        pointsLists2d = new List<List<Vector2[]>>(camerasToCalibrate.Count);
+        pointsLists3d = new List<List<Vector3[]>>(camerasToCalibrate.Count);
+        //Debug.Log($"[CalibrateTool][IO]{nameof(pointsLists2d)} is {pointsLists2d.Count}");
+
         BeginToCalibrate();
     }
+
+    void OnDisable()
+    {
+        if (hasWrittenCalib) return;
+        WriteCalib();
+    }
+
 
     void BeginToCalibrate()
     {
         if (camerasToCalibrate.Count < 1)
         {
-            Debug.LogWarning("[Calib] No camera to calibrate, please check " + nameof(CalibrateTool) + "." + nameof(camerasToCalibrate));
+            Debug.LogWarning("[CalibrateTool] No camera to calibrate, please check " + nameof(CalibrateTool) + "." + nameof(camerasToCalibrate));
             return;
         }
 
@@ -162,6 +182,8 @@ public class CalibrateTool : MonoBehaviour
         {
             WriteWorldPointsScreenPos(cam, cameraIndex, markPoints, nameof(markPoints));
             WriteWorldPointsScreenPos(cam, cameraIndex,validatePoints,nameof(validatePoints));
+            pointsLists2d.Add(new List<Vector2[]>());
+            pointsLists3d.Add(new List<Vector3[]>());
             //GetNativeCalibrationByMath(cam);
             cameraIndex++;
         }
@@ -181,14 +203,23 @@ public class CalibrateTool : MonoBehaviour
             int cameraIndex = 0;
             foreach (var cam in camerasToCalibrate)
             {
-                WriteChessboardScreenPos(cam, cameraIndex);
+
+                List<Vector2> thisCamera2D = new List<Vector2>();
+                List<Vector3> thisCamera3D = new List<Vector3>();
+
+                AddChessboardScreenPosToDic(cam, cameraIndex, ref thisCamera2D, ref thisCamera3D);
+                if (thisCamera2D.Count != 0)
+                {
+                    pointsLists2d[cameraIndex].Add(thisCamera2D.ToArray());
+                    pointsLists3d[cameraIndex].Add(thisCamera3D.ToArray());
+                }
                 cameraIndex++;
             }
             UpdateChessboard();
             // Note the order of codes above.  Different order shows different outcome.
             if (boardIndex >= chessboardCount)
             {
-                Debug.Log("[Calib] Chessboard Finished");
+                Debug.Log("[CalibrateTool]UpdateChessboard STOP");
                 break;
             }
         }
@@ -310,6 +341,8 @@ public class CalibrateTool : MonoBehaviour
         pysw.WriteLine(nameof(Scaling) + "=" + Scaling.ToString()); 
         pysw.WriteLine(@"NUM_FRAMES = 0");
         pysw.WriteLine(@"DATASET_NAME = ''");
+        pysw.WriteLine(@"#If you are using perception packgae: ");
+        pysw.WriteLine($"{nameof(PERCEPTION_PATH)} = f'{PERCEPTION_PATH}'");
         pysw.Close();
     }
 
@@ -355,7 +388,7 @@ public class CalibrateTool : MonoBehaviour
         sw.Close();
     }
 
-    void WriteChessboardScreenPos(Camera cam, int cameraIndex)
+    void AddChessboardScreenPosToDic(Camera cam, int cameraIndex, ref List<Vector2> pointsList2d, ref List<Vector3> pointsList3d)
     {
         List<Vector2> screenPointsList = new List<Vector2>();
         List<Vector3> outPutObjList = new List<Vector3>();
@@ -372,18 +405,75 @@ public class CalibrateTool : MonoBehaviour
             }
         }
 
-        Vector2[] imagePoints = screenPointsList.ToArray();
+        pointsList2d = screenPointsList;
+        pointsList3d = outPutObjList;
 
-        string file_name = boardIndex + ".txt";
-        string file_name_3d = boardIndex + "_3d.txt";
+        //string file_name = boardIndex + ".txt";
+        //string file_name_3d = boardIndex + "_3d.txt";
 
-        StreamWriter sw = CreateSW(cameraIndex, file_name);
-        StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
-        WriteArrayToFile(imagePoints, ref sw);
-        WriteArrayToFile(outPutObjList.ToArray(), ref sw_3d);
+        //StreamWriter sw = CreateSW(cameraIndex, file_name);
+        //StreamWriter sw_3d = CreateSW(cameraIndex, file_name_3d);
+        //WriteArrayToFile(imagePoints, ref sw);
+        //WriteArrayToFile(outPutObjList.ToArray(), ref sw_3d);
 
-        sw.Close();
-        sw_3d.Close();
+        //sw.Close();
+        //sw_3d.Close();
+    }
+
+    async void WriteCalib() 
+    {
+        hasWrittenCalib= true;
+        Debug.Log("[CalibrateTool]Begin to write calib");
+
+        //针对每个相机
+        for (int i = 0; i < camerasToCalibrate.Count; i++)
+        {
+            //针对每个棋盘
+            for (int j = 0; j < pointsLists2d[i].Count; j++)
+            {
+                //开线程写
+                await Task.Run(() =>
+                {
+                    string fileName2d = (j).ToString() + ".txt"; // Generate the file name (1.txt, 2.txt, etc.)
+                    string filePath = Path.Combine(targetParentFolder, $"C{i + 1}");
+                    string path = Path.Combine(filePath, fileName2d); // Combines the filename with the data path of your Unity project
+                    using (StreamWriter writer2d = new StreamWriter(path))
+                    {
+                        Debug.Log($"[CalibrateTool][Async][IO]{path}");
+                        for (int k = 0; k < pointsLists2d[i][j].Length; k++)
+                        {
+                            var data = $"{pointsLists2d[i][j][k].x} {pointsLists2d[i][j][k].y}"; // Write the data to the file asynchronously
+                            writer2d.WriteLine(data); // Write the data to the file asynchronously
+                        }
+                    }
+
+                    string fileName3d = (j).ToString() + "_3d.txt"; // Generate the file name (1.txt, 2.txt, etc.)
+                    string path3d = Path.Combine(filePath, fileName3d); // Combines the filename with the data path of your Unity project
+                    using (StreamWriter writer3d = new StreamWriter(path3d))
+                    {
+                        Debug.Log($"[CalibrateTool][Async][IO]{path3d}");
+                        //Debug.Log($"[CalibrateTool]There are {pointsLists3d[i][j].Length} chessboards");
+                        for (int k = 0; k < pointsLists3d[i][j].Length; k++)
+                        {
+                            var data = $"{pointsLists3d[i][j][k].x} {pointsLists3d[i][j][k].y} {pointsLists3d[i][j][k].z}"; // Write the data to the file asynchronously
+                            //Debug.Log(data);
+                            writer3d.WriteLine(data); // Write the data to the file asynchronously
+                        }
+                    }
+                });
+            }
+        }
+        Debug.Log("[CalibrateTool]Chessboard Finished");
+    }
+
+    void WriteToFile(string filePath, string fileName, string data)
+    {
+        string path = Path.Combine(filePath, fileName); // Combines the filename with the data path of your Unity project
+        Debug.Log($"[CalibrateTool][Async][IO]{path}");
+        using (StreamWriter writer = new StreamWriter(path))
+        {
+            writer.WriteLine(data); // Write the data to the file asynchronously
+        }
     }
 
     public void ResetFolder(string foldername)
@@ -393,7 +483,7 @@ public class CalibrateTool : MonoBehaviour
         if (dir.Exists)
         {
             dir.Delete(true);
-            Debug.Log("[IO]" + foldername + " have been reset");
+            Debug.Log("[CalibrateTool][IO]" + foldername + " have been reset");
         }
 
     }
@@ -410,7 +500,7 @@ public class CalibrateTool : MonoBehaviour
             sw = fileInfo.CreateText();
             if (enableLog)
             {
-                Debug.Log("[IO]File " + filename + " has been inited");
+                Debug.Log("[CalibrateTool][IO]File " + filename + " has been inited");
             }
 
             return sw;
@@ -425,27 +515,18 @@ public class CalibrateTool : MonoBehaviour
 
     public void WriteArrayToFile(Vector2[] array, ref StreamWriter sw)
     {
-        // Create a new StreamWriter to write the array to a text file
-
-        // Loop through each element in the array and write it to the file
         foreach (Vector3 element in array)
         {
             sw.WriteLine(element.x + " " + element.y);
         }
-        //Debug.Log("[IO]Vector3 array written to file: " + filename + ".txt");
     }
 
     public void WriteArrayToFile(Vector3[] array, ref StreamWriter sw)
     {
-        // Create a new StreamWriter to write the array to a text file
-
-        // Loop through each element in the array and write it to the file
         foreach (Vector3 element in array)
         {
-
             sw.WriteLine(element.x + " " + element.y + " " + element.z);
         }
-        //Debug.Log("[IO]Vector3 array written to file: " + filename + ".txt");
     }
 
     public float NextFloat(System.Random ran, float minValue, float maxValue)
