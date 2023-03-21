@@ -13,10 +13,6 @@
 
 更多请参考：[Notes of CalibrateTool](http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/) 
 
-序列帧(1st of cam9)标注结果：
-
-![bbox_cam9](http://images.tsingloo.com/bbox_cam9.png)
-
 请 clone 一份 [MultiviewX_FYP](https://github.com/TsingLoo/MultiviewX_FYP)，可以参考[Notes of MultiviewX_FYP](https://www.tsingloo.com/2022/10/27/8ae3a2e7ced646d398dea0f30e648708/)进行后续工作。其将原`calibdateCamera.py`替换为了`calibrateByChessboard.py`，添加了一些动态容量的数组以适应不同的摄像头数，支持Scaling缩放，并且`datasetParameters`将由 CalibrateTool 根据Unity中Inspector面板处的参数自动生成，等等。
 
 CalibrateTool是一个在Unity3D中为一个或多个相机，产生多个虚拟的不同角度朝向的棋盘格数据且给出待标定相机对应内外参的工具。其生成的虚拟棋盘数据等效于利用OpenCV中`cv.findChessboardCorners`所产生的结果。
