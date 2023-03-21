@@ -13,20 +13,20 @@
 
 更多请参考：[Notes of CalibrateTool](http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/) 
 
-序列帧(1st of cam5)标注结果：
+序列帧(1st of cam9)标注结果：
 
-![bbox_cam5](http://images.tsingloo.com/bbox_cam5.png)
+![bbox_cam9](http://images.tsingloo.com/bbox_cam9.png)
 
 请 clone 一份 [MultiviewX_FYP](https://github.com/TsingLoo/MultiviewX_FYP)，可以参考[Notes of MultiviewX_FYP](https://www.tsingloo.com/2022/10/27/8ae3a2e7ced646d398dea0f30e648708/)进行后续工作。其将原`calibdateCamera.py`替换为了`calibrateByChessboard.py`，添加了一些动态容量的数组以适应不同的摄像头数，支持Scaling缩放，并且`datasetParameters`将由 CalibrateTool 根据Unity中Inspector面板处的参数自动生成，等等。
 
 CalibrateTool是一个在Unity3D中为一个或多个相机，产生多个虚拟的不同角度朝向的棋盘格数据且给出待标定相机对应内外参的工具。其生成的虚拟棋盘数据等效于利用OpenCV中`cv.findChessboardCorners`所产生的结果。
 
 同时，CalibrateTool 可以完成一些运行 [MultiviewX_FYP](https://github.com/TsingLoo/MultiviewX_FYP) 所需要的设置，诸如设置地图大小、地图格点起始位置等。
-欢迎下载示例文件[***sample.zip***](https://storage.tsingloo.com/sample.zip)(439MB，三层每层3个，共9个摄像机每个相机13帧)，请将其子文件夹`calib`、`matchings`，子文件`datasetParameters.py`拖入到 MultiviewX_FYP 文件夹下。
+欢迎下载示例文件[***sample.zip***](https://storage.tsingloo.com/sample.zip)(472MB，三层每层3个，共9个摄像机每个相机14帧)，请将其子文件夹`calib`、`matchings`，子文件`datasetParameters.py`拖入到 MultiviewX_FYP 文件夹下。
 
 **注意：**现在会从`datasetParameters.py`中读取`perception`所在路径。如果使用了Perception Package，并合理配置了CalibrateTool，那么perception路径会自动更改为正确的路径，否则，路径默认为下图所示。
 
-![黄色字体即拖入的文件](http://images.tsingloo.com/image-20230321195705267.png)
+![黄色字体即拖入的文件](http://images.tsingloo.com/image-20230321202032035.png)
 
 运行`run_all.py`，参考[Notes of MultiviewX_FYP](https://www.tsingloo.com/2022/10/27/8ae3a2e7ced646d398dea0f30e648708/)，其给出了一些常用的命令行参数
 

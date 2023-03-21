@@ -338,7 +338,7 @@ public class CalibrateTool : MonoBehaviour
         pysw.WriteLine(nameof(MAN_HEIGHT) + " = " + MAN_HEIGHT.ToString());
         pysw.WriteLine(nameof(MAN_RADIUS) + " = " + MAN_RADIUS.ToString());
         pysw.WriteLine(nameof(RJUST_WIDTH) + " = " + RJUST_WIDTH.ToString());
-        pysw.WriteLine(nameof(Scaling) + "=" + Scaling.ToString()); 
+        pysw.WriteLine(nameof(Scaling) + " = " + Scaling.ToString()); 
         pysw.WriteLine(@"NUM_FRAMES = 0");
         pysw.WriteLine(@"DATASET_NAME = ''");
         pysw.WriteLine(@"#If you are using perception packgae: ");
