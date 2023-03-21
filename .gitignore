@@ -132,11 +132,11 @@ gt.txt
 /matchings
 /calib
 datasetParameters.py
+perception/*
 
 # Generated
 /calibrations
 /annotations_positions
 bbox_cam*.png
 rectangles.pom
-perception/*
 *_C*_F*

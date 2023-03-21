@@ -2,6 +2,7 @@ import shutil
 import os
 import datasetParameters
 import argparse
+import fnmatch
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", action = "store_true",help="Annotate and show the bbox on the first frame of each camera or not.")
@@ -40,29 +41,21 @@ def note():
 
     print("==== Args ====")
     print()
-def clear_project(folder_path = os.getcwd()):
-    unwanted_files_and_folders = []
+def clear_project(path = os.getcwd()):
+    # Read the .gitignore file and extract the ignored files and folders
+    with open('.gitignore', 'r') as f:
+        ignored_patterns = [line.strip() for line in f.readlines() if not line.startswith('#') and line.strip() != '']
 
-    # Read the .gitignore file, if it exists
-    gitignore_path = os.path.join(folder_path, ".gitignore")
-    if os.path.isfile(gitignore_path):
-        with open(gitignore_path, "r") as f:
-            for line in f.readlines():
-                # Remove newline characters and ignore comments
-                line = line.strip()
-                if not line.startswith("#"):
-                    # Ignore empty lines and directories (ends with '/')
-                    if line != "" and not line.endswith("/"):
-                        unwanted_files_and_folders.append(line)
-
-    # Delete all files and folders in the folder that are in the allowed list
-    for file_name in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, file_name)
-        if file_name in unwanted_files_and_folders:
-            if os.path.isfile(file_path):
+    # Remove the ignored files and folders from the directory
+    for root, dirs, files in os.walk(path, topdown=False):
+        for name in files:
+            file_path = os.path.join(root, name)
+            if any(fnmatch.fnmatch(file_path, pattern) for pattern in ignored_patterns):
                 os.remove(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
+        for name in dirs:
+            dir_path = os.path.join(root, name)
+            if any(fnmatch.fnmatch(dir_path, pattern) for pattern in ignored_patterns):
+                shutil.rmtree(dir_path)
 
 
 def finish():
