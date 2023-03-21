@@ -6,6 +6,17 @@ import time
 from glob import glob
 import datasetParameters
 
+def printFailed(msg):
+    print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
+    $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
+    $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+    $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
+    $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
+    $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+    $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
+    \__|      \__|  \__|\______|\________|\________|\_______/ ''')
+    print(msg)
+
 def prepare():
     time_stamp = time.strftime('%H%M%S',time.localtime())
     dataset_name = time_stamp + f"_C{datasetParameters.NUM_CAM}_F{datasetParameters.NUM_FRAMES}"
@@ -37,19 +48,10 @@ def movefile(srcfile,dstpath):                       # 移动函数
 def perceptionHandler(keep):
     sensorDic = {}
 
-    perception_path = f'perception'
-
+    perception_path = datasetParameters.PERCEPTION_PATH
     dataSetLists=os.listdir(perception_path)
     if(len(dataSetLists) == 0 ):
-        print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
-$$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
-$$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-$$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
-$$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
-$$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-$$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
-\__|      \__|  \__|\______|\________|\________|\_______/ ''')
-        print("perceptionHandler.py failed, there is no valid datasets given by Unity Perception, please use Unity Perception to generate new data")
+        printFailed("perceptionHandler.py failed, there is no valid datasets given by Unity Perception, please use Unity Perception to generate new data")
         sys.exit()
     dataSetLists.sort(key=lambda x:os.path.getmtime((perception_path +"\\"+x)))
 
@@ -82,15 +84,7 @@ $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
                     shutil.rmtree(path)
                 if (choice == 'n' or choice == 'N'):
                     print(path + " remains unchanged")
-                    print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
-            $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
-            $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-            $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
-            $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
-            $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-            $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
-            \__|      \__|  \__|\______|\________|\________|\_______/ ''')
-            print("run_all.py failed, please use Unity Perception to generate new data")
+            printFailed("run_all.py failed, please use Unity Perception to generate new data")
             sys.exit()
 
     prepare()
@@ -122,7 +116,7 @@ $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
         for RGBImage in os.listdir(os.path.join(path, RGBdir)):
             #print(RGBImage)
             string = str(imageIndex)
-            os.rename(os.path.join(os.path.join(path, RGBdir),RGBImage),
+            shutil.move(os.path.join(os.path.join(path, RGBdir),RGBImage),
                       os.path.join(os.path.join(Image_subsets_path, "C" + sensorDic[RGBdir]), string.rjust(datasetParameters.RJUST_WIDTH, '0') + "." + RGBImage.split(".")[1]))
             imageIndex = imageIndex + 1
 
