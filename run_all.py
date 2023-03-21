@@ -5,6 +5,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", action = "store_true",help="Annotate and show the bbox on the first frame of each camera or not.")
+parser.add_argument("-c", action = "store_true",help="Clear the project files and folder on .gitignore or not.")
 parser.add_argument("-s", action = "store_true",help="Save the bbox on the first frame of each camera or not.")
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
 parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
@@ -32,12 +33,15 @@ def note():
     print("==== NOTE ====")
     print()
     print(f"Annotate and show bbox: {args.a}")
+    print(f"Clear the project: {args.c}")
     print(f"Save bbox: {args.s}")
     print(f"Keep Perception remains: {args.k}")
     print(f"Force calibrate and generate POM: {args.f}")
 
     print("==== Args ====")
     print()
+def clear_project()
+
 def finish():
     print()
     if(args.s is not True):
@@ -57,6 +61,8 @@ def finish():
 if __name__ == '__main__':
 
     note()
+    if(args.c):
+        clear_project()
     if(args.f):
         calibrate()
         generate_POM()
