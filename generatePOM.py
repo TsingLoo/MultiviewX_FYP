@@ -160,7 +160,7 @@ def generate_POM():
         errors.append(np.linalg.norm(projected_foot_2d - foot_2d, axis=1))
         print(f"==== POM Cam {cam +1} has done ====")
     errors = np.concatenate(errors)
-    print(f'average error in image pixels: {np.average(errors)}')
+    print(f'average error in image pixels: {np.average(errors) / NUM_CAM}')
     fp.close()
     pass
 
