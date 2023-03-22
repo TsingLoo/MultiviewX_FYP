@@ -1,12 +1,22 @@
-﻿using System.Collections;
+﻿/********************************************************************************
+
+ ** auth： Xiaonan Pan
+
+ ** date： 2023/03/22
+
+ ** desc： Refer to http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/ for more information
+
+ ** Ver.:  V0.0.3
+
+*********************************************************************************/
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System;
 using UnityEditor;
 using UnityEngine;
-using System.Linq;
-using System.Threading.Tasks;
-
 //using Unity.Mathematics;
 
 public class CalibrateTool : MonoBehaviour
@@ -25,10 +35,8 @@ public class CalibrateTool : MonoBehaviour
         }
     }
 
-    [Range(0, 10f)]   
-    public float Scaling= 1;
-
-
+    #region Inspector
+    [Header("Main Properties")]
 
     /// <summary>
     /// Add the cameras you want to calibrate into this list
@@ -44,7 +52,12 @@ public class CalibrateTool : MonoBehaviour
     /// Fake chessboard will be generated from this transform
     /// </summary>
     public Transform chessboardGenerateCenter;
-
+    
+    /// <summary>
+    /// Scaling of OpenCV coordinate
+    /// </summary>
+    [Range(0, 10f)]
+    public float Scaling = 1;
 
     [SerializeField] bool enableLog = false;
 
@@ -52,12 +65,12 @@ public class CalibrateTool : MonoBehaviour
     /// <summary>
     /// The inteval bettween the chessboard to change its transform
     /// </summary>
-    [SerializeField] float updateChessboardInterval = 0.5f;
+    [SerializeField] float updateChessboardInterval = 0.2f;
 
     /// <summary>
     /// Count how many times(views) is the chessboard going to be updated
     /// </summary>
-    [SerializeField] int chessboardCount = 50;
+    [SerializeField] int chessboardCount = 30;
 
     /// <summary>
     /// The length of the sides of the fake checkerboard
@@ -76,21 +89,21 @@ public class CalibrateTool : MonoBehaviour
 
     [Header("Staic Mark Points Properties")]
     /// <summary>
-    /// The square length of mark points square
+    /// The square Ulength of mark points square
     /// </summary>
-    [SerializeField] int lengthOfMarkPointsSquare = 7;
+    [SerializeField] int UlengthOfMarkPointsSquare = 7;
 
     /// <summary>
-    /// The distance bettween two points
+    /// The Udistance bettween two mark points
     /// </summary>
-    [SerializeField] float gapBetweenMarkPoints = 1;
+    [SerializeField] float UgapBetweenMarkPoints = 1;
 
     [SerializeField] GameObject humanModel;
     [SerializeField] bool showModel = false;
 
     GameObject go;
 
-    [Header("Dataset Parameters")]
+    [Header("Dataset Parameters CV")]
     /// <summary>
     /// This transform indicate the Origin of grid of Wildtrack system.
     /// </summary>
@@ -115,6 +128,13 @@ public class CalibrateTool : MonoBehaviour
     [SerializeField] float tRandomOffset = 5f;
     [SerializeField] float rRandomOffset = 120;
 
+    [Header("Gizmos")]
+    [SerializeField] bool drawChessboard = true;
+    [SerializeField] bool drawGrid = true;
+    [SerializeField] bool drawScaling = true;
+    [SerializeField] bool drawTRandom = true;
+    [SerializeField] bool drawMarkPoints = true;
+#endregion
 
     /// <summary>
     /// A dictionary to store the cornerpoints(GameObject) on chessboard and their coordinates(follow OpenCV,(x,y,0)) of the chessboard
@@ -149,9 +169,10 @@ public class CalibrateTool : MonoBehaviour
 
     void Start()
     {
+
         WriteDatasetParametersPy(); 
         //WriteGridOrigin();
-        targetParentFolder = targetParentFolder + "\\calib";
+        targetParentFolder = Path.Combine(targetParentFolder,"calib");
         Debug.Log("[CalibrateTool][IO]Calibrate saved in " + targetParentFolder);
         ResetFolder(targetParentFolder);
 
@@ -180,6 +201,16 @@ public class CalibrateTool : MonoBehaviour
         int cameraIndex = 0;
         foreach (var cam in camerasToCalibrate)
         {
+            if (cam.pixelHeight != IMAGE_HEIGHT || cam.pixelWidth != IMAGE_WIDTH)
+            {
+                Debug.LogError($"[CalibrateTool]Config Image size({IMAGE_WIDTH},{IMAGE_HEIGHT}) is not the same with Game View size({cam.pixelWidth},{cam.pixelHeight})");
+#if UNITY_EDITOR
+                EditorApplication.ExitPlaymode();
+#else
+            Application.Quit();
+#endif
+                return;
+            }
             WriteWorldPointsScreenPos(cam, cameraIndex, markPoints, nameof(markPoints));
             WriteWorldPointsScreenPos(cam, cameraIndex,validatePoints,nameof(validatePoints));
             pointsLists2d.Add(new List<Vector2[]>());
@@ -208,6 +239,7 @@ public class CalibrateTool : MonoBehaviour
                 List<Vector3> thisCamera3D = new List<Vector3>();
 
                 AddChessboardScreenPosToDic(cam, cameraIndex, ref thisCamera2D, ref thisCamera3D);
+
                 if (thisCamera2D.Count != 0)
                 {
                     pointsLists2d[cameraIndex].Add(thisCamera2D.ToArray());
@@ -220,6 +252,8 @@ public class CalibrateTool : MonoBehaviour
             if (boardIndex >= chessboardCount)
             {
                 Debug.Log("[CalibrateTool]UpdateChessboard STOP");
+                hasWrittenCalib = true;
+                WriteCalib();
                 break;
             }
         }
@@ -254,20 +288,22 @@ public class CalibrateTool : MonoBehaviour
         //Debug.Log(cam.projectionMatrix);
     }
 
+
     /// <summary>
     /// This method indicate the coordinates of the project
     /// </summary>
+    ///[ExecuteAlways]
     void GenerateMarkPoints()
     {
-        markPoints = new Vector3[(2 * lengthOfMarkPointsSquare) * (2 * lengthOfMarkPointsSquare)];
+        markPoints = new Vector3[(2 * UlengthOfMarkPointsSquare) * (2 * UlengthOfMarkPointsSquare)];
         int index = 0;
 
-        for (int i = -lengthOfMarkPointsSquare; i < lengthOfMarkPointsSquare; i++)
+        for (int i = -UlengthOfMarkPointsSquare; i < UlengthOfMarkPointsSquare; i++)
         {
-            for (int j = -lengthOfMarkPointsSquare; j < lengthOfMarkPointsSquare; j++)
+            for (int j = -UlengthOfMarkPointsSquare; j < UlengthOfMarkPointsSquare; j++)
             {
                 //Debug.Log(index);
-                markPoints[index] = chessboardGenerateCenter.transform.position + new Vector3(i * gapBetweenMarkPoints, 0, j * gapBetweenMarkPoints);
+                markPoints[index] = chessboardGenerateCenter.transform.position + new Vector3(i * UgapBetweenMarkPoints, 0, j * UgapBetweenMarkPoints);
                 index++;
             }
         }
@@ -280,45 +316,45 @@ public class CalibrateTool : MonoBehaviour
         validatePoints = new Vector3[markPoints.Length];
         for (int i = 0; i < validatePoints.Length; i++)
         {
-            validatePoints[i] = new Vector3(markPoints[i].x + NextFloat(ran, -tRandomOffset*0.1f, tRandomOffset*0.1f), 0, markPoints[i].z + NextFloat(ran, -tRandomOffset * 0.1f, tRandomOffset * 0.1f));
+            validatePoints[i] = new Vector3(markPoints[i].x + NextFloat(ran, -tRandomOffset*0.1f, tRandomOffset*0.1f), markPoints[i].y, markPoints[i].z + NextFloat(ran, -tRandomOffset * 0.1f, tRandomOffset * 0.1f));
         }
     }
 
     /// <summary>
-    /// Generate the visual chessboard
+    /// Generate the virtual chessboard
     /// </summary>
     void GenerateVisualChessboard()
     {
+        gameObject.transform.position = chessboardGenerateCenter.transform.position;
+        gameObject.transform.rotation = chessboardGenerateCenter.transform.rotation;
+
         for (int w = 0; w < widthOfChessboard; w++)
         {
             for (int h = 0; h < heightOfChessboard; h++)
             {
                 GameObject cornerPoint = new GameObject(w.ToString() + "_" + h.ToString());
-                cornerPoint.transform.position = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE);
-                cornerPoint.transform.parent = transform;
+                cornerPoint.transform.position = chessboardGenerateCenter.position;
+                //Debug.Log($"[CalibrateTool][Chessboard]{nameof(cornerPoint)} 1: {cornerPoint.transform.position}");
+                cornerPoint.transform.SetParent(transform);
+                //Debug.Log($"[CalibrateTool][Chessboard]{nameof(cornerPoint)} 2: {cornerPoint.transform.localPosition}");
+                cornerPoint.transform.localPosition = new Vector3(w * SQUARE_SIZE, 0, h * SQUARE_SIZE) ;
+                //Debug.Log($"[CalibrateTool][Chessboard]{nameof(cornerPoint)} 3: {cornerPoint.transform.localPosition}");
                 cornerPointsDic.Add(cornerPoint, new Vector3(w * SQUARE_SIZE/Scaling, h * SQUARE_SIZE/Scaling, 0));
             }
         }
-        gameObject.transform.position = chessboardGenerateCenter.transform.position;
-        gameObject.transform.rotation = chessboardGenerateCenter.transform.rotation;
-        //gameObject.transform.rotation = Quaternion.identity;
-        //foreach (var go in markPointsDic)
-        //{
-        //Debug.Log(go.Key.transform.position);
-        //}
     }
 
     void UpdateChessboard()
     {
         boardIndex++;
         System.Random ran = new System.Random();
-        transform.position = new Vector3(NextFloat(ran, tRandomOffset, -tRandomOffset), NextFloat(ran, tRandomOffset, -tRandomOffset), NextFloat(ran, tRandomOffset, -tRandomOffset));
+        transform.position = new Vector3(NextFloat(ran, tRandomOffset, -tRandomOffset), NextFloat(ran, tRandomOffset, -tRandomOffset), NextFloat(ran, tRandomOffset, -tRandomOffset)) + chessboardGenerateCenter.position;
         transform.rotation = Quaternion.Euler(NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset), NextFloat(ran, rRandomOffset, -rRandomOffset));
     }
 
     void WriteDatasetParametersPy() 
     {
-        string pyPath = targetParentFolder + "\\datasetParameters.py";
+        string pyPath = Path.Combine(targetParentFolder, "datasetParameters.py");
         if (File.Exists(pyPath))
         {
            File.Delete(pyPath);
@@ -341,13 +377,18 @@ public class CalibrateTool : MonoBehaviour
         pysw.WriteLine(nameof(Scaling) + " = " + Scaling.ToString()); 
         pysw.WriteLine(@"NUM_FRAMES = 0");
         pysw.WriteLine(@"DATASET_NAME = ''");
-        pysw.WriteLine(@"#If you are using perception packgae: ");
-        pysw.WriteLine($"{nameof(PERCEPTION_PATH)} = f'{PERCEPTION_PATH}'");
+        pysw.WriteLine(@"#If you are using perception packgae: this should NOT be 'perception', output path of perception instead");
+        if (!PERCEPTION_PATH.Equals(@"f'perception'"))
+        { 
+            PERCEPTION_PATH = $"'{PERCEPTION_PATH}'";
+        } 
+        pysw.WriteLine($"{nameof(PERCEPTION_PATH)} = {PERCEPTION_PATH}");
         pysw.Close();
     }
 
     void WriteWorldPointsScreenPos(Camera cam, int cameraIndex, Vector3[] arr, string name)
     {
+        //Debug.Log($"[Calib]{name} length {arr.Length}");
         Vector2[] screenPoints = ConvertWorldPointsToScreenPointsOpenCV(arr, cam);
         List<Vector3> worldPointsList = arr.ToList(); // Convert arr1 to a List<Vector3>
         List<Vector2> screenPointsList = screenPoints.ToList(); // Convert arr2 to a List<Vector3>
@@ -363,6 +404,16 @@ public class CalibrateTool : MonoBehaviour
                 screenPointsList.RemoveAt(i);
             }
         }
+
+
+
+        for (int i = 0; i < worldPointsList.Count; i++)
+        {
+            worldPointsList[i] = worldPointsList[i] - gridOrigin.position;
+            worldPointsList[i] = new Vector3(worldPointsList[i].x, worldPointsList[i].z, worldPointsList[i].y);
+            worldPointsList[i] = worldPointsList[i] / Scaling;
+        }
+
 
         Vector3[] worldPoints = worldPointsList.ToArray(); // Convert the List<Vector3> back to an array
         screenPoints = screenPointsList.ToArray();
@@ -419,7 +470,6 @@ public class CalibrateTool : MonoBehaviour
         //sw.Close();
         //sw_3d.Close();
     }
-
     async void WriteCalib() 
     {
         hasWrittenCalib= true;
@@ -570,10 +620,26 @@ public class CalibrateTool : MonoBehaviour
     #region Gizmos
     private void OnDrawGizmos()
     {
-        DrawChessboard();
-        DrawGrid();
-        DrawScaling();
-        DrawMarkPoints();
+        if (drawChessboard)
+        {
+            DrawChessboard();
+        }
+        if (drawGrid)
+        {
+            DrawGrid();
+        }
+        if (drawScaling)
+        { 
+            DrawScaling();
+        }
+        if (drawTRandom)
+        {
+            DrawTRandom();
+        }
+        if (drawMarkPoints)
+        {
+            DrawMarkPoints();
+        }
     }
 
     void DrawChessboard() 
@@ -581,8 +647,8 @@ public class CalibrateTool : MonoBehaviour
         foreach (var go in cornerPointsDic)
         {
             Gizmos.color = new Color(1, 0, 0, 0.5f);
-            Gizmos.DrawCube(go.Key.transform.position, new Vector3(0.01f, 0.01f, 0.01f));
-            Handles.Label(go.Key.transform.position, go.Value.ToString());
+            Gizmos.DrawCube(go.Key.transform.position , new Vector3(0.01f, 0.01f, 0.01f));
+            Handles.Label(go.Key.transform.position , go.Value.ToString());
         }
     }
 
@@ -618,39 +684,13 @@ public class CalibrateTool : MonoBehaviour
 
     void DrawScaling() 
     {
-        Gizmos.color = new Color(0, 1, 0, 1f);
+        Gizmos.color = new Color(0, 1, 0, 0.3f);
 
-        Vector3 footPos = gridOrigin.transform.position + new Vector3(MAP_WIDTH*0.5f, 0, MAP_HEIGHT * 0.5f) * Scaling;
+        Vector3 rootPos = gridOrigin.transform.position + new Vector3(MAP_WIDTH * 0.5f, MAN_HEIGHT*0.5f, MAP_HEIGHT * 0.5f) * Scaling;
 
-        Handles.Label(footPos + Vector3.left * Scaling +  new Vector3(0, MAN_HEIGHT, 0) * Scaling, MAN_HEIGHT.ToString());
-        Gizmos.DrawLine(footPos + Vector3.left * Scaling, footPos + Vector3.left * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
-        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.left * Scaling + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
-        Gizmos.DrawLine(footPos + Vector3.back * Scaling, footPos + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
-        Gizmos.DrawLine(footPos, footPos + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
-        Gizmos.DrawLine(footPos, footPos + Vector3.left * Scaling);
-        Gizmos.DrawLine(footPos, footPos + Vector3.back * Scaling);
-        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.left * Scaling);
-        Gizmos.DrawLine(footPos + Vector3.left * Scaling + Vector3.back * Scaling, footPos + Vector3.back * Scaling);
-        Gizmos.DrawLine(footPos + new Vector3(0, MAN_HEIGHT, 0) * Scaling, footPos + Vector3.left * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling);
-
-
-
-        for (int j = 0; j < MAP_EXPAND+ 1; j++)
-        {
-            Gizmos.DrawLine(footPos + new Vector3( -j * (1f / MAP_EXPAND), 0, 0) * Scaling, footPos +  Vector3.back*Scaling + new Vector3( - j * (1f / MAP_EXPAND), 0, 0) * Scaling);
-            Gizmos.DrawLine(footPos + new Vector3(-j * (1f / MAP_EXPAND), 0, 0)* Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling, footPos + Vector3.back * Scaling + new Vector3(0, MAN_HEIGHT, 0) * Scaling + new Vector3(-j * (1f / MAP_EXPAND), 0, 0) * Scaling);
-        }
-
-        if (Application.isPlaying)
-        {
-            if (go != null)
-            {
-                Destroy(go);
-            }
-
-            return;
-
-        }
+        Gizmos.DrawCube(rootPos, new Vector3(4*MAN_RADIUS,MAN_HEIGHT,4*MAN_RADIUS) * Scaling);
+        Gizmos.DrawWireCube(rootPos, new Vector3(4 * MAN_RADIUS, MAN_HEIGHT, 4 * MAN_RADIUS) * Scaling);
+        Handles.Label(rootPos + Vector3.up * MAN_HEIGHT * Scaling * 0.55f, MAN_HEIGHT.ToString());
 
         if (!showModel)
         {
@@ -678,8 +718,8 @@ public class CalibrateTool : MonoBehaviour
 
         if (humanModel != null && go == null)
         {
-            go = Instantiate(humanModel, footPos + Vector3.left * 0.5f * Scaling + Vector3.back * 0.5f * Scaling, Quaternion.identity);
-            go.transform.localScale = Vector3.one * Scaling;
+            go = Instantiate(humanModel, rootPos - new Vector3(0,MAN_HEIGHT*0.5f,0)  *Scaling, Quaternion.identity);
+            go.transform.localScale = Vector3.one * Scaling ;
             go.name = "Scaling Model";
             go.tag = "EditorOnly";
         }
@@ -689,15 +729,39 @@ public class CalibrateTool : MonoBehaviour
 
     void DrawMarkPoints() 
     {
-        if (markPoints is null) return;
+        if (markPoints == null) return;
 
         foreach (var go in markPoints)
         {
             //Debug.Log(go);
             Gizmos.color = new Color(0, 1, 0, 0.4f);
-            Gizmos.DrawCube(go*Scaling, new Vector3(0.01f, 0.01f, 0.01f));
-            Handles.Label(go*Scaling, go.ToString());
+            Gizmos.DrawCube(go, new Vector3(0.01f, 0.01f, 0.01f));
+            //Gizmos.DrawWireCube(go * Scaling, new Vector3(0.01f, 0.01f, 0.01f));
+            Handles.Label(go,$"({(go.x - gridOrigin.position.x)/Scaling},{(go.z - gridOrigin.position.z)/Scaling},{(go.y - gridOrigin.position.y)/Scaling})");
+            //Handles.Label(go,$"({(go/Scaling).x - gridOrigin.position.x},{(go / Scaling).z - gridOrigin.position.z},{(go / Scaling).y - gridOrigin.position.y})");
         }
+
+
+        //foreach (var go in validatePoints)
+        //{
+        //    //Debug.Log(go);
+        //    Gizmos.color = new Color(0, 1, 0, 0.4f);
+        //    Gizmos.DrawCube(go * Scaling, new Vector3(0.01f, 0.01f, 0.01f));
+        //    Handles.Label(go * Scaling, $"({(go / Scaling).x - gridOrigin.position.x},{(go / Scaling).z - gridOrigin.position.z},{(go / Scaling).y - gridOrigin.position.y})");
+        //}
+
+    }
+
+    void DrawTRandom() 
+    {
+        Gizmos.color = new Color(1f,0.92f,0.016f,0.2f);
+
+        Vector3 center = chessboardGenerateCenter.position;
+        Gizmos.DrawCube(center, Vector3.one*tRandomOffset*2);
+        Gizmos.DrawWireCube(center, Vector3.one * tRandomOffset * 2);
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(gameObject.transform.position, Vector3.one * tRandomOffset * 0.1f);
     }
     #endregion
 }
