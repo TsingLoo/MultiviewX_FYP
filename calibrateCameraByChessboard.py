@@ -56,13 +56,14 @@ def calibrate():
         validate_Points_2D = np.array(np.loadtxt(file_validatePoints).astype('float32'))
         validate_Points_3D = np.array(np.loadtxt(file_validatePoints_3d).astype('float32'))
 
-        for i in range(0, len(mark_points_3D)):
+        #for i in range(0, len(mark_points_3D)):
             #mark_points_3D[i] = get_opencv_coordinates(mark_points_3D[i])
-            mark_points_3D[i] = process_worldcoord(mark_points_3D[i])
+        #    mark_points_3D[i] = process_worldcoord(mark_points_3D[i])
+        #    print(mark_points_3D[i])
         #
-        for i in range(0, len(validate_Points_3D)):
+        #for i in range(0, len(validate_Points_3D)):
             #validate_Points_3D[i] = get_opencv_coordinates(validate_Points_3D[i])
-            validate_Points_3D[i] = process_worldcoord(validate_Points_3D[i])
+        #    validate_Points_3D[i] = process_worldcoord(validate_Points_3D[i])
 
         #print(mark_points_3D)
 
@@ -128,6 +129,19 @@ def calibrate():
 
         print("total error by validate: {}".format(mean_error/len(validate_Points_3D)) )
         print("total error by calibrate: {}".format(retval))
+        if((mean_error/len(validate_Points_3D) - retval)) > 0.001:
+            print("""   
+     ___   .___________.___________. _______ .__   __. .___________. __    ______   .__   __. 
+    /   \  |           |           ||   ____||  \ |  | |           ||  |  /  __  \  |  \ |  | 
+   /  ^  \ `---|  |----`---|  |----`|  |__   |   \|  | `---|  |----`|  | |  |  |  | |   \|  | 
+  /  /_\  \    |  |        |  |     |   __|  |  . `  |     |  |     |  | |  |  |  | |  . `  | 
+ /  _____  \   |  |        |  |     |  |____ |  |\   |     |  |     |  | |  `--'  | |  |\   | 
+/__/     \__\  |__|        |__|     |_______||__| \__|     |__|     |__|  \______/  |__| \__| 
+                                                                                              
+                                       """)
+            print(f"The input data ({len(obj_points_3D)} tuples) for this Camera{cam + 1} is too little")
+            print(f"The intrinsic of this Camera{cam + 1} will be unstable and unreliable" )
+            print(f"Please try to adjust the 'tRandomOffset' field and wait for the end of updates of chessborad in Unity")
 
         f = cv2.FileStorage(os.path.join(intrinsic_path,f'intr_Camera{cam + 1}.xml') , flags=cv2.FILE_STORAGE_WRITE)
         f.write(name='camera_matrix', val=cameraMatrix)
