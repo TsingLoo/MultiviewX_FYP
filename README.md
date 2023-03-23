@@ -9,7 +9,7 @@
 }
 ```
 
-# CalibrateTool 
+# CalibrateTool V 0.0.3
 
 更多请参考：[Notes of CalibrateTool](http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/) 
 
@@ -20,7 +20,7 @@ CalibrateTool是一个在Unity3D中为一个或多个相机，产生多个虚拟
 同时，CalibrateTool 可以完成一些运行 [MultiviewX_FYP](https://github.com/TsingLoo/MultiviewX_FYP) 所需要的设置，诸如设置地图大小、地图格点起始位置等。
 欢迎下载示例文件[***sample.zip***](https://storage.tsingloo.com/sample.zip)(472MB，三层每层3个，共9个摄像机每个相机14帧)，请将其子文件夹`calib`、`matchings`，子文件`datasetParameters.py`拖入到 MultiviewX_FYP 文件夹下。
 
-**注意：**现在会从`datasetParameters.py`中读取`perception`所在路径。如果使用了Perception Package，并合理配置了CalibrateTool，那么perception路径会自动更改为正确的路径，否则，路径默认为下图所示。
+**注意**：现在会从`datasetParameters.py`中读取`perception`所在路径。如果使用了Perception Package，并合理配置了CalibrateTool，那么perception路径会自动更改为正确的路径，否则，路径默认为下图所示。
 
 ![黄色字体即拖入的文件](http://images.tsingloo.com/image-20230321202032035.png)
 
