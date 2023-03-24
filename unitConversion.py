@@ -85,3 +85,8 @@ def swap_unity23(unity_pos_3):
 def swap_unity12(unity_pos_2):
     result = [unity_pos_2[0],unity_pos_2[2],unity_pos_2[1]]
     return result
+
+
+
+if __name__ == "__main__":
+    print(get_worldcoord_from_worldgrid([2,1]))

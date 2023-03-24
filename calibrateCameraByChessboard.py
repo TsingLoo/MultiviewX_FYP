@@ -28,9 +28,10 @@ def showPoints(points2D,camIndex):
     plt.title(camIndex)
     plt.show()
 
+
 #print(get_opencv_coordinates([0,0,0]))
 def calibrate():
-    DATASET_NAME = os.path.join( datasetParameters.DATASET_NAME, "calibrations")
+    DATASET_NAME = os.path.join(datasetParameters.DATASET_NAME, "calibrations")
     intrinsic_path = os.path.join(DATASET_NAME,f'intrinsic')
     extrinsic_path = os.path.join(DATASET_NAME, f'extrinsic')
     os.makedirs(intrinsic_path, exist_ok=True)

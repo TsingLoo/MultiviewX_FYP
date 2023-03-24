@@ -16,6 +16,7 @@ from calibrateCameraByChessboard import calibrate
 from generatePOM import generate_POM
 from perceptionHandler import perceptionHandler
 from generateAnnotation import annotate
+from vali import vali
 
 def note():
     print('''                             ,,          ,,              ,,                                                                           
@@ -81,10 +82,12 @@ if __name__ == '__main__':
         clear_project()
     elif(args.f):
         calibrate()
+        vali()
         generate_POM()
     else:
         perceptionHandler(args.k)
         calibrate()
+        vali()
         generate_POM()
         annotate(args.a,args.s)
     finish()
