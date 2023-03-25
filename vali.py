@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import cv2
 import re
 import json
@@ -9,7 +11,7 @@ import datasetParameters
 intrinsic_camera_matrix_filenames = []
 extrinsic_camera_matrix_filenames = []
 
-def get_error(worldcoord2imgcoord_mat,validate_Points, validate_Points_3d, modified = True):
+def get_error(worldcoord2imgcoord_mat,validate_Points, validate_Points_3d,cam, modified = True):
     idx = 0
     error = 0
     for validate_Point_3d in validate_Points_3d:
@@ -21,13 +23,31 @@ def get_error(worldcoord2imgcoord_mat,validate_Points, validate_Points_3d, modif
 
         trueimagecoord = np.array([validate_Points[idx][0], validate_Points[idx][1]])
         imgcoord = worldcoord2imgcoord_mat @ wcoord
-        print(f"trueimagecoord: {trueimagecoord[0]},{trueimagecoord[1]}")
-        print(f"imgcoordx:      {imgcoord[0] / imgcoord[2]},{imgcoord[1] / imgcoord[2]}")
-        print(f"raw imgcoord:   {imgcoord[0]},{imgcoord[1]},{imgcoord[2]}")
+        if(idx % 10 == 0):
+            print(f"Camera{cam + 1} trueimagecoord: {trueimagecoord[0]},{trueimagecoord[1]}")
+            print(f"Camera{cam + 1} imgcoordx:      {imgcoord[0] / imgcoord[2]},{imgcoord[1] / imgcoord[2]}")
+            print(f"Camera{cam + 1} raw imgcoord:   {imgcoord[0]},{imgcoord[1]},{imgcoord[2]}")
+            print()
 
         error = error + trueimagecoord[0] - imgcoord[0]/ imgcoord[2] + trueimagecoord[1] - imgcoord[1] / imgcoord[2]
-        print()
         idx = idx + 1
+
+
+    if(error/idx > 0.1):
+        print("""   
+             ___   .___________.___________. _______ .__   __. .___________. __    ______   .__   __. 
+            /   \  |           |           ||   ____||  \ |  | |           ||  |  /  __  \  |  \ |  | 
+           /  ^  \ `---|  |----`---|  |----`|  |__   |   \|  | `---|  |----`|  | |  |  |  | |   \|  | 
+          /  /_\  \    |  |        |  |     |   __|  |  . `  |     |  |     |  | |  |  |  | |  . `  | 
+         /  _____  \   |  |        |  |     |  |____ |  |\   |     |  |     |  | |  `--'  | |  |\   | 
+        /__/     \__\  |__|        |__|     |_______||__| \__|     |__|     |__|  \______/  |__| \__| 
+
+                                               """)
+        print(
+            f"Please try to adjust the 'tRandomOffset' field and wait for the end of updates of chessborad in Unity")
+        print(f"The intrinsic of this Camera{cam + 1} does NOT pass validation")
+        warnings.warn(f"Failed to validate Calibration",DeprecationWarning)
+        exit()
 
     return error/idx
 
@@ -82,7 +102,7 @@ def get_imgcoord2worldgrid_matrices(intrinsic_matrices, extrinsic_matrices, worl
             # Tevc
             Tevc = extrinsic_matrices[cam][:, 3]
 
-        errors.append(get_error(worldcoord2imgcoord_mat,validate_Points,validate_Points_3d, modified))
+        errors.append(get_error(worldcoord2imgcoord_mat,validate_Points,validate_Points_3d, cam, modified))
 
         # image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
         #
@@ -192,6 +212,6 @@ def vali(modified = True):
     print(errors)
 
 if __name__ == '__main__':
-    vali()
+    vali(False)
 
 
