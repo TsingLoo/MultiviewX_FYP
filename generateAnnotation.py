@@ -52,7 +52,7 @@ def create_pid_annotation(pid, pos, bbox_by_pos_cam):
     for cam in range(len(bbox_by_pos_cam[pos])):
         bbox = bbox_by_pos_cam[pos][cam]
         view_annotation = {'viewNum': cam, 'xmin': int(bbox[0]), 'ymin': int(bbox[1]),
-                           'xmax': int(bbox[2]), 'ymax': int(bbox[3])}
+                           'xmax': int(bbox[2]), 'ymax': int(bbox[3]),'pid': int(pid)}
         person_annotation['views'].append(view_annotation)
     return person_annotation
 
@@ -99,6 +99,8 @@ def annotate(previewCount):
                             if bbox[0] == -1 and bbox[1] == -1:
                                 continue
                             cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                            cv2.putText(img, str(anno['pid']), ((bbox[:2][0]+bbox[2:][0])//2, (bbox[:2][1]+bbox[2:][1])//2), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                        (0, 255, 255), 2)
 
                             cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]), cv2.FONT_HERSHEY_SIMPLEX, 1,
                                         (255, 255, 255), 2)
@@ -107,14 +109,15 @@ def annotate(previewCount):
                         img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
                         img.save(f'bbox_cam{cam + 1}_frame{frame}.png')
 
-    for cam in range(NUM_CAM):
-        gif = []
-        for frame in range(previewCount):
-            filename = f"bbox_cam{cam + 1}_frame{frame}.png"
-            img = Image.open(filename)
-            gif.append(img)
+    if(not previewCount == 0):
+        for cam in range(NUM_CAM):
+            gif = []
+            for frame in range(previewCount):
+                filename = f"bbox_cam{cam + 1}_frame{frame}.png"
+                img = Image.open(filename)
+                gif.append(img)
 
-        gif[0].save(f"cam{cam + 1}_frames.gif", format="GIF", append_images=gif[1:], save_all=True, duration=100,
+            gif[0].save(f"cam{cam + 1}_frames.gif", format="GIF", append_images=gif[1:], save_all=True, duration=100,
                     loop=0)
 if __name__ == '__main__':
     annotate(0)
