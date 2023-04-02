@@ -5,12 +5,13 @@ import argparse
 import fnmatch
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-a", action = "store_true",help="Annotate and show the bbox on the first frame of each camera or not.")
+parser.add_argument('-p', type=int, help='Preivew annotation count')
 parser.add_argument("-c", action = "store_true",help="Clear the project files and folder on .gitignore or not.")
-parser.add_argument("-s", action = "store_true",help="Save the bbox on the first frame of each camera or not.")
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
 parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
 args = parser.parse_args()
+previewCount = args.p if args.p else 0
+
 
 from calibrateCameraByChessboard import calibrate
 from generatePOM import generate_POM
@@ -34,9 +35,8 @@ def note():
     print()
     print("==== NOTE ====")
     print()
-    print(f"Annotate and show bbox: {args.a}")
+    print(f"Preview annotation count: {previewCount}")
     print(f"Clear the project: {args.c}")
-    print(f"Save bbox: {args.s}")
     print(f"Keep Perception remains: {args.k}")
     print(f"Force calibrate and generate POM: {args.f}")
 
@@ -61,10 +61,10 @@ def clear_project(path = os.getcwd()):
 
 def finish():
     print()
-    if(args.s is not True):
-        for i in range(datasetParameters.NUM_CAM):
-            if(os.path.exists(f"bbox_cam{i+1}.png")):
-                os.remove(f"bbox_cam{i+1}.png")
+    if(previewCount == 0):
+        for file in os.listdir("."):
+            if fnmatch.fnmatch(file, "bbox_cam*_frame*.png"):
+                os.remove(file)
 
     if(args.f is not True):
         if (os.path.exists(f"rectangles.pom")):
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         calibrate()
         vali()
         generate_POM()
-        annotate(args.a,args.s)
+        annotate(previewCount)
     finish()
 
 

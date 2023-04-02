@@ -140,3 +140,4 @@ perception/*
 bbox_cam*.png
 rectangles.pom
 *_C*_F*
+*.gif
