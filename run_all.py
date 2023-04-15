@@ -1,5 +1,7 @@
 import shutil
 import os
+import sys
+
 import datasetParameters
 import argparse
 import fnmatch
@@ -36,6 +38,19 @@ def note():
     print("==== NOTE ====")
     print()
     print(f"Preview annotation count: {previewCount}")
+    if(previewCount < 3):
+        print('''        $$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
+        $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
+        $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+        $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
+        $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
+        $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
+        $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
+        \__|      \__|  \__|\______|\________|\________|\_______/ ''')
+        print(f"-p should be larger than 2")
+        sys.exit()
+
+
     print(f"Clear the project: {args.c}")
     print(f"Keep Perception remains: {args.k}")
     print(f"Force calibrate and generate POM: {args.f}")

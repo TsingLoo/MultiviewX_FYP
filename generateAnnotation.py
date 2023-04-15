@@ -119,5 +119,8 @@ def annotate(previewCount):
 
             gif[0].save(f"cam{cam + 1}_frames.gif", format="GIF", append_images=gif[1:], save_all=True, duration=100,
                     loop=0)
+
+            #gif[0].show()
+
 if __name__ == '__main__':
     annotate(0)

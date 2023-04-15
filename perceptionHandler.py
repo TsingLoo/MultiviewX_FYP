@@ -58,7 +58,6 @@ def perceptionHandler(keep):
     path = os.path.join(perception_path, dataSetLists[-1])
     rgbLists=os.listdir(path)
 
-
     with open(os.path.join(path, os.path.join(rgbLists[0]), 'captures_000.json'), 'r') as f:
         jsonstr = f.read()
         data = json.loads(jsonstr)
