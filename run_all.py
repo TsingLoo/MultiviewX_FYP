@@ -22,14 +22,16 @@ from generateAnnotation import annotate
 from vali import vali
 
 def note():
-    print('''                             ,,          ,,              ,,                                                                           
-`7MMM.     ,MMF'           `7MM   mm     db              db                        `YMM'   `MP'     `7MM"""YMM `YMM'   `MM'`7MM"""Mq. 
-  MMMb    dPMM               MM   MM                                                 VMb.  ,P         MM    `7   VMA   ,V    MM   `MM.
-  M YM   ,M MM `7MM  `7MM    MM mmMMmm `7MM `7M'   `MF'`7MM  .gP"Ya `7M'    ,A    `MF'`MM.M'          MM   d      VMA ,V     MM   ,M9 
-  M  Mb  M' MM   MM    MM    MM   MM     MM   VA   ,V    MM ,M'   Yb  VA   ,VAA   ,V    MMb           MM""MM       VMMP      MMmmdM9  
-  M  YM.P'  MM   MM    MM    MM   MM     MM    VA ,V     MM 8M""""""   VA ,V  VA ,V   ,M'`Mb.         MM   Y        MM       MM       
-  M  `YM'   MM   MM    MM    MM   MM     MM     VVV      MM YM.    ,    VVV    VVV   ,P   `MM.        MM            MM       MM       
-.JML. `'  .JMML. `Mbod"YML..JMML. `Mbmo.JMML.    W     .JMML.`Mbmmd'     W      W  .MM:.  .:MMa.    .JMML.        .JMML.   .JMML.    ''')
+    print('''    $$\      $$\           $$\   $$\     $$\            $$\                         $$\   $$\         $$$$$$$\                                                      $$\     $$\                     
+    $$$\    $$$ |          $$ |  $$ |    \__|           \__|                        $$ |  $$ |        $$  __$$\                                                     $$ |    \__|                    
+    $$$$\  $$$$ |$$\   $$\ $$ |$$$$$$\   $$\ $$\    $$\ $$\  $$$$$$\  $$\  $$\  $$\ \$$\ $$  |        $$ |  $$ | $$$$$$\   $$$$$$\   $$$$$$$\  $$$$$$\   $$$$$$\  $$$$$$\   $$\  $$$$$$\  $$$$$$$\  
+    $$\$$\$$ $$ |$$ |  $$ |$$ |\_$$  _|  $$ |\$$\  $$  |$$ |$$  __$$\ $$ | $$ | $$ | \$$$$  /         $$$$$$$  |$$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ \_$$  _|  $$ |$$  __$$\ $$  __$$\ 
+    $$ \$$$  $$ |$$ |  $$ |$$ |  $$ |    $$ | \$$\$$  / $$ |$$$$$$$$ |$$ | $$ | $$ | $$  $$<          $$  ____/ $$$$$$$$ |$$ |  \__|$$ /      $$$$$$$$ |$$ /  $$ |  $$ |    $$ |$$ /  $$ |$$ |  $$ |
+    $$ |\$  /$$ |$$ |  $$ |$$ |  $$ |$$\ $$ |  \$$$  /  $$ |$$   ____|$$ | $$ | $$ |$$  /\$$\         $$ |      $$   ____|$$ |      $$ |      $$   ____|$$ |  $$ |  $$ |$$\ $$ |$$ |  $$ |$$ |  $$ |
+    $$ | \_/ $$ |\$$$$$$  |$$ |  \$$$$  |$$ |   \$  /   $$ |\$$$$$$$\ \$$$$$\$$$$  |$$ /  $$ |        $$ |      \$$$$$$$\ $$ |      \$$$$$$$\ \$$$$$$$\ $$$$$$$  |  \$$$$  |$$ |\$$$$$$  |$$ |  $$ |
+    \__|     \__| \______/ \__|   \____/ \__|    \_/    \__| \_______| \_____\____/ \__|  \__|$$$$$$\ \__|       \_______|\__|       \_______| \_______|$$  ____/    \____/ \__| \______/ \__|  \__|
+                                                                                              \______|                                                  $$ |                                        
+                                                                                                                                                        $$ | ''')
     print()
     print("""To utilize this project, you could refer to :
     1. Notes of CalibrateTool: http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/ 
@@ -38,7 +40,8 @@ def note():
     print("==== NOTE ====")
     print()
     print(f"Preview annotation count: {previewCount}")
-    if(previewCount < 3):
+    if(previewCount < 3 and previewCount != 0):
+        print('''''')
         print('''        $$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
         $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
         $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
