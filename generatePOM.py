@@ -1,7 +1,5 @@
 import os
 import cv2
-
-import datasetParameters
 from unitConversion import *
 
 

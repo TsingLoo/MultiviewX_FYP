@@ -3,7 +3,6 @@ import json
 import shutil
 import sys
 import time
-from glob import glob
 import datasetParameters
 
 def printFailed(msg):

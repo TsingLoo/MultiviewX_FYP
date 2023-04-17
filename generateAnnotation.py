@@ -1,7 +1,6 @@
 import os
 import re
 import json
-import matplotlib.pyplot as plt
 import cv2
 from PIL import Image
 
