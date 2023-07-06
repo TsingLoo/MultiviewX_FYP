@@ -20,6 +20,8 @@ from generatePOM import generate_POM
 from perceptionHandler import perceptionHandler
 from generateAnnotation import annotate
 from vali import vali
+from generateView import generate_View
+from generateView import draw_views
 
 def note():
     print('''    $$\      $$\           $$\   $$\     $$\            $$\                         $$\   $$\         $$$$$$$\                                                      $$\     $$\                     
@@ -95,6 +97,9 @@ def finish():
 
 if __name__ == '__main__':
 
+
+    #generate_View()
+
     note()
     if(args.c):
         clear_project()
@@ -106,6 +111,8 @@ if __name__ == '__main__':
         perceptionHandler(args.k)
         calibrate()
         vali()
+        generate_View()
+        draw_views()
         generate_POM()
         annotate(previewCount)
     finish()

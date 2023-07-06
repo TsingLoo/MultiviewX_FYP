@@ -1,7 +1,8 @@
+import numpy as np
+import os
+import cv2
 import datasetParameters
 from datasetParameters import *
-import numpy as np
-
 
 def get_worldgrid_from_pos(pos):
     """
@@ -87,6 +88,56 @@ def swap_unity12(unity_pos_2):
     return result
 
 
+def get_calibration(camIdx):
+    camIdx = camIdx + 1
+    intrinsic_xml = f'intr_Camera{camIdx}.xml'
+    extrinsic_xml = f'extr_Camera{camIdx}.xml'
 
-if __name__ == "__main__":
-    print(get_worldcoord_from_worldgrid([2,1]))
+
+    DATASET_NAME = datasetParameters.DATASET_NAME
+    calibration_path = os.path.join(DATASET_NAME, "calibrations")
+    intrinsic_path = os.path.join(calibration_path, f'intrinsic')
+    extrinsic_path = os.path.join(calibration_path, f'extrinsic')
+
+    fp_calibration = cv2.FileStorage(os.path.join(intrinsic_path,  f'{intrinsic_xml}'),
+                                         flags=cv2.FILE_STORAGE_READ)
+
+    #取得给定的相机内参
+    cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
+            'distortion_coefficients').mat()
+
+    fp_calibration.release()
+    fp_calibration = cv2.FileStorage(os.path.join(extrinsic_path,f'{extrinsic_xml}')  ,
+                                         flags=cv2.FILE_STORAGE_READ)
+    rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
+    #取得给定的相机外参
+    fp_calibration.release()
+
+    return  rvec, tvec, cameraMatrix, distCoeffs
+
+def map_point_to_world_on_plane(r, t, c, d, u, v, plane_origin, plane_normal = [0, -1, 0]):
+    # Undistort the image coordinates
+    undistorted_points = cv2.undistortPoints(np.array([[[u, v]]], dtype=np.float32), c, d)
+
+    # Create homogeneous image coordinates
+    homogeneous_image_point = np.array([undistorted_points[0][0][0], undistorted_points[0][0][1], 1])
+
+    # Calculate the rotation matrix
+    rotation_matrix, _ = cv2.Rodrigues(r)
+
+    # Transform the image point to a ray in world coordinates
+    ray_direction = np.dot(rotation_matrix.T, homogeneous_image_point)
+
+    # The origin of the ray is the camera position in world coordinates
+    ray_origin = -np.dot(rotation_matrix.T, t)
+
+    # Find the intersection of the ray and the plane
+    normal_dot_ray_direction = np.dot(plane_normal, ray_direction)
+
+    if abs(normal_dot_ray_direction) < 1e-6:
+        raise Exception("The ray is parallel to the plane.")
+
+    t0 = np.dot(plane_normal, plane_origin - ray_origin) / normal_dot_ray_direction
+    intersection_point = ray_origin + t0 * ray_direction
+
+    return intersection_point

@@ -208,7 +208,9 @@ def vali(modified = True):
     #     print()
 
     imgcoord2worldgrid_matrices, errors = get_imgcoord2worldgrid_matrices(intrinsic_matrices, extrinsic_matrices, worldgrid2worldcoord_mat,modified)
+    print("Errors are :")
     print(errors)
+    print()
 
 if __name__ == '__main__':
     vali(False)
