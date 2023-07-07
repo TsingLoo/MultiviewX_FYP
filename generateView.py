@@ -3,6 +3,10 @@ import cv2
 import json
 import shutil
 import random
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from PIL import Image, ImageDraw
 from math import sqrt
 from unitConversion import *
@@ -31,17 +35,22 @@ def generate_View():
               [0, 0 + MAP_HEIGHT]]
 
     for i in range(NUM_CAM):
-        polygon = Polygon(AOICorners2D)
-
         rvec, tvec, cameraMatrix, distCoeffs = get_calibration(i)   
+
+        cam_pos = get_camera_position(rvec,tvec)
+        AOICorners2D.append([cam_pos[0],cam_pos[2]])
+        polygon = Polygon(AOICorners2D)
 
         for corner in ImageCorners:
             worldpoint =  map_point_to_world_on_plane(rvec,tvec,cameraMatrix,distCoeffs, corner[0], corner[1], GRID_ORIGIN)
             worldpoint2D = [worldpoint[0], worldpoint[2]]
-            projected_foot_2d, _ = cv2.projectPoints(worldpoint, rvec, tvec, cameraMatrix, distCoeffs)
+            projected_point_2d, _ = cv2.projectPoints(worldpoint, rvec, tvec, cameraMatrix, distCoeffs)
+            print(f'{(projected_point_2d - corner)<[0.00005,0.00005]}  Original point: {corner} WorldPoint: {worldpoint}')
             if(worldpoint2D[0] >= 0 and worldpoint2D[1] >= 0):
+                print(f'cam{i + 1} receives a new point: {worldpoint2D}')
                 if point_in_polygon(worldpoint2D, polygon):
                     # Update the polygon
+
                     polygon = update_polygon(polygon, worldpoint2D)
 
         polygons[f'cam{i + 1}'] = polygon
@@ -49,7 +58,8 @@ def generate_View():
         geojson_polygon = mapping(polygon)
         polygons_dict[f'cam{i + 1}'] = geojson_polygon
         print(f'The final polygon of the view {i + 1} is {polygon}')
-
+        print()
+        
     json_file = 'polygons.json'
     # Save the dictionary to a JSON file
     with open(json_file, 'w') as file:
@@ -57,7 +67,9 @@ def generate_View():
                
     shutil.move(json_file, datasetParameters.DATASET_NAME)
     
+
     
+
 def point_in_polygon(point, polygon):
     p1 = Point(point)
     p2 = Polygon(polygon)
@@ -133,7 +145,8 @@ def draw_views():
         color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         draw.polygon(normalized_vertices, outline= color)
     image.show()
+    print()
 
+    
 if __name__ == '__main__':
-    generate_View()
-    draw_views()
+    a()

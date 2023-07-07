@@ -141,3 +141,13 @@ def map_point_to_world_on_plane(r, t, c, d, u, v, plane_origin, plane_normal = [
     intersection_point = ray_origin + t0 * ray_direction
 
     return intersection_point
+
+def get_camera_position(r,t):
+    # Calculate the inverse rotation matrix
+    rotation_matrix, _ = cv2.Rodrigues(r)
+    inv_rotation_matrix = np.linalg.inv(rotation_matrix)
+
+    # Calculate the camera position
+    inv_camera_position = -np.dot(inv_rotation_matrix, t)
+
+    return inv_camera_position
