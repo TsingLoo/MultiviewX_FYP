@@ -150,4 +150,4 @@ def get_camera_position(r,t):
     # Calculate the camera position
     inv_camera_position = -np.dot(inv_rotation_matrix, t)
 
-    return inv_camera_position
+    return inv_camera_position.tolist()
