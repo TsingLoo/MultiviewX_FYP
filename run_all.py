@@ -105,12 +105,12 @@ if __name__ == '__main__':
         clear_project()
     elif(args.f):
         calibrate()
-        vali()
+        #vali()
         generate_POM()
     else:
         perceptionHandler(args.k)
         calibrate()
-        vali()
+        #vali()
         generate_View()
         draw_views()
         generate_POM()

@@ -3,7 +3,7 @@ import re
 import json
 import cv2
 from PIL import Image
-
+import concurrent.futures
 import datasetParameters
 from unitConversion import *
 
@@ -56,58 +56,72 @@ def create_pid_annotation(pid, pos, bbox_by_pos_cam):
     return person_annotation
 
 
+def process_frame(frame, gts, pids_dict, bbox_by_pos_cam):
+    gts_frame = gts[gts[:, 0] == frame, :]
+    annotations = []
+    for i in range(gts_frame.shape[0]):
+        pid, pos = gts_frame[i, 1:]
+        if pid not in pids_dict:
+            pids_dict[pid] = len(pids_dict)
+        annotations.append(create_pid_annotation(pids_dict[pid], pos, bbox_by_pos_cam))
+
+    with open(os.path.join(DATASET_NAME, 'annotations_positions/{:05d}.json'.format(frame)), 'w') as fp:
+        json.dump(annotations, fp, indent=4)
+
+    if lastFrameIndex != 0 and frame <= lastFrameIndex:
+        for cam in range(NUM_CAM):
+            annotationPath = os.path.join(DATASET_NAME, 'Image_subsets', f'C{cam + 1}')
+            imageLists = os.listdir(annotationPath)
+            for image in imageLists:
+                img_file_name = os.path.splitext(image)[0]
+                img_frame_index = int(img_file_name.split('_')[-1])
+                if img_frame_index == frame:
+                    img = Image.open(os.path.join(os.path.join(annotationPath, image)))
+                    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
+                    for anno in annotations:
+                        pid = anno['personID']
+                        anno = anno['views'][cam]
+                        bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
+                        if bbox[0] == -1 and bbox[1] == -1:
+                            continue
+                        cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                        cv2.putText(img, str(pid), ((bbox[:2][0]+bbox[2:][0])//2, (bbox[:2][1]+bbox[2:][1])//2), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                    (0, 255, 255), 2)
+
+                        cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                    (255, 255, 255), 2)
+                        cv2.putText(img, str(bbox[2:]), tuple(bbox[2:]), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                                    (255, 255, 255), 2)
+                    img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                    img.save(f'bbox_cam{cam + 1}_frame{frame}.png')
+
+
 def annotate(previewCount):
     lastFrameIndex = previewCount - 1
     DATASET_NAME = datasetParameters.DATASET_NAME
     bbox_by_pos_cam = read_pom(os.path.join(DATASET_NAME, 'rectangles.pom'))
     gts = []
-    for cam in range(NUM_CAM):
-        gt = read_gt(cam)
-        gts.append(gt)
+
+    # Create a ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit tasks to thread pool
+        future_to_gt = {executor.submit(read_gt, cam): cam for cam in range(NUM_CAM)}
+        for future in concurrent.futures.as_completed(future_to_gt):
+            gts.append(future.result())
+        
     gts = np.concatenate(gts, axis=0)
     gts = np.unique(gts, axis=0)
     print(f'average persons per frame: {gts.shape[0] / len(np.unique(gts[:, 0]))}')
     pids_dict = {}
     os.makedirs(os.path.join(DATASET_NAME, 'annotations_positions'), exist_ok=True)
-    for frame in np.unique(gts[:, 0]):
-        gts_frame = gts[gts[:, 0] == frame, :]
-        annotations = []
-        for i in range(gts_frame.shape[0]):
-            pid, pos = gts_frame[i, 1:]
-            if pid not in pids_dict:
-                pids_dict[pid] = len(pids_dict)
-            annotations.append(create_pid_annotation(pids_dict[pid], pos, bbox_by_pos_cam))
 
-        with open(os.path.join(DATASET_NAME, 'annotations_positions/{:05d}.json'.format(frame)), 'w') as fp:
-            json.dump(annotations, fp, indent=4)
-
-        if lastFrameIndex != 0 and frame <= lastFrameIndex:
-            for cam in range(NUM_CAM):
-                annotationPath = os.path.join(DATASET_NAME, 'Image_subsets', f'C{cam + 1}')
-                imageLists = os.listdir(annotationPath)
-                for image in imageLists:
-                    img_file_name = os.path.splitext(image)[0]
-                    img_frame_index = int(img_file_name.split('_')[-1])
-                    if img_frame_index == frame:
-                        img = Image.open(os.path.join(os.path.join(annotationPath, image)))
-                        img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-
-                        for anno in annotations:
-                            pid = anno['personID']
-                            anno = anno['views'][cam]
-                            bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
-                            if bbox[0] == -1 and bbox[1] == -1:
-                                continue
-                            cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
-                            cv2.putText(img, str(pid), ((bbox[:2][0]+bbox[2:][0])//2, (bbox[:2][1]+bbox[2:][1])//2), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                        (0, 255, 255), 2)
-
-                            cv2.putText(img, str(bbox[:2]), tuple(bbox[:2]), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                        (255, 255, 255), 2)
-                            cv2.putText(img, str(bbox[2:]), tuple(bbox[2:]), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                                        (255, 255, 255), 2)
-                        img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-                        img.save(f'bbox_cam{cam + 1}_frame{frame}.png')
+    # Create a ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit tasks to thread pool
+        frame_to_annotations = {executor.submit(process_frame, frame, gts, pids_dict, bbox_by_pos_cam): frame for frame in np.unique(gts[:, 0])}
+        for future in concurrent.futures.as_completed(frame_to_annotations):
+            pass
 
     if(not previewCount == 0):
         for cam in range(NUM_CAM):
@@ -121,6 +135,5 @@ def annotate(previewCount):
                     loop=0)
 
             #gif[0].show()
-
 if __name__ == '__main__':
     annotate(0)
