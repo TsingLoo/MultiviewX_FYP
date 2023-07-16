@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import cv2
 import os
-from concurrent.futures import ThreadPoolExecutor
+import time
+import concurrent.futures
 import datasetParameters
 from unitConversion import *
 import numpy as np
@@ -141,18 +142,35 @@ def calibrate_camera(cam):
     f.write(name='rvec', val=R)
     f.write(name='tvec', val=T)
 
+
     f.release()
 
     #print(retval)
-    print(f"==== Calibrate {cam + 1} has done ====");
+    print(f"==== Calibrate {cam + 1} has done ====")
     print()
 
 
+def fallback():
+    for i in range(NUM_CAM):
+        calibrate_camera(i)    
 
 
-def calibrate():
-    with ThreadPoolExecutor() as executor:
-        executor.map(calibrate_camera, range(NUM_CAM))
+def calibrate(threadCount,DisableMultiprocessing=False):
+    
+    if(DisableMultiprocessing or NUM_CAM > threadCount):
+        fallback()
+    else: 
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                results =  executor.map(calibrate_camera, range(NUM_CAM))
+                for result in results:
+                    pass
+        
+        except Exception as e:
+            print(e)
+            fallback()
+            
+    
 
 
 

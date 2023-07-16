@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import shutil
 import sys
@@ -6,15 +7,23 @@ import time
 import datasetParameters
 
 def printFailed(msg):
-    print('''$$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
-    $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
-    $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-    $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
-    $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
-    $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-    $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
-    \__|      \__|  \__|\______|\________|\________|\_______/ ''')
     print(msg)
+
+def get_most_recent_perception_folder_path(perception_path):
+    dataSetLists = os.listdir(perception_path)
+    pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    valid_directories = [d for d in dataSetLists if re.match(pattern, d)]
+    
+    if len(valid_directories) == 0:
+        printFailed("perceptionHandler.py failed. There is no valid datasets given by Unity Perception. Please use Unity Perception to generate new data.")
+        sys.exit()
+
+    valid_directories.sort(key=lambda x: os.path.getmtime(os.path.join(perception_path, x)))
+    #print(valid_directories)
+
+    path = os.path.join(perception_path, valid_directories[-1])
+    print(f"Working on folder: {path}")
+    return path
 
 def prepare():
     time_stamp = time.strftime('%H%M%S',time.localtime())
@@ -33,28 +42,11 @@ def prepare():
     os.mkdir(dataset_name,777)
     datasetParameters.DATASET_NAME = dataset_name
 
-def movefile(srcfile,dstpath):                       # 移动函数
-    if not os.path.isfile(srcfile):
-        print ("%s not exist!"%(srcfile))
-    else:
-        fpath,fname=os.path.split(srcfile)             # 分离文件名和路径
-        if not os.path.exists(dstpath):
-            os.makedirs(dstpath)                       # 创建路径
-        print (os.path.join(dstpath , fname))
-        shutil.move(srcfile, os.path.join(dstpath , fname))          # 移动文件
-        print ("move %s -> %s"%(srcfile, os.path.join(dstpath , fname)))
-
-def perceptionHandler(keep):
+def perceptionHandler():
     sensorDic = {}
 
     perception_path = datasetParameters.PERCEPTION_PATH
-    dataSetLists=os.listdir(perception_path)
-    if(len(dataSetLists) == 0 ):
-        printFailed("perceptionHandler.py failed, there is no valid datasets given by Unity Perception, please use Unity Perception to generate new data")
-        sys.exit()
-    dataSetLists.sort(key=lambda x:os.path.getmtime((perception_path +"\\"+x)))
-
-    path = os.path.join(perception_path, dataSetLists[-1])
+    path = get_most_recent_perception_folder_path(perception_path)
     rgbLists=os.listdir(path)
 
     with open(os.path.join(path, os.path.join(rgbLists[0]), 'captures_000.json'), 'r') as f:
@@ -71,7 +63,7 @@ def perceptionHandler(keep):
     for RGBdir in rgbLists[1:]:
         datasetParameters.NUM_FRAMES = len(os.listdir(os.path.join(path, RGBdir)))
         if(len(os.listdir(os.path.join(path, RGBdir))) == 0):
-            print( path + " has been processed, there is no available fresh data")
+            print(path + " has been processed, there is no available fresh data")
             print("Do you want to delete this directory?")
 
             choice = ""
@@ -114,15 +106,20 @@ def perceptionHandler(keep):
         for RGBImage in os.listdir(os.path.join(path, RGBdir)):
             #print(RGBImage)
             string = str(imageIndex)
-            shutil.move(os.path.join(os.path.join(path, RGBdir),RGBImage),
+            shutil.copy2(os.path.join(os.path.join(path, RGBdir),RGBImage),
                       os.path.join(os.path.join(Image_subsets_path, "C" + sensorDic[RGBdir]), string.rjust(datasetParameters.RJUST_WIDTH, '0') + "." + RGBImage.split(".")[1]))
             imageIndex = imageIndex + 1
 
-    if(not keep):
+    print(Image_subsets_path + " Generation Done")
+
+
+def removeRawPerceptionFiles(keep=False):
+    if not keep:
+        perception_path = datasetParameters.PERCEPTION_PATH
+        path = get_most_recent_perception_folder_path(perception_path)
         print(f"Delete {path}")
         shutil.rmtree(path)
 
-    print(Image_subsets_path + " Generation Done")
 
 if __name__ == '__main__':
     perceptionHandler(False)

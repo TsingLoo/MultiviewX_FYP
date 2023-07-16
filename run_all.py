@@ -11,6 +11,7 @@ parser.add_argument('-p', type=int, help='Preivew annotation count')
 parser.add_argument("-c", action = "store_true",help="Clear the project files and folder on .gitignore or not.")
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
 parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
+parser.add_argument("-s", action = "store_true",help="Disable multithread optimization when the number of cameras is less than 7")
 args = parser.parse_args()
 previewCount = args.p if args.p else 0
 
@@ -18,6 +19,7 @@ previewCount = args.p if args.p else 0
 from calibrateCameraByChessboard import calibrate
 from generatePOM import generate_POM
 from perceptionHandler import perceptionHandler
+from perceptionHandler import removeRawPerceptionFiles
 from generateAnnotation import annotate
 from vali import vali
 from generateView import generate_View
@@ -44,14 +46,6 @@ def note():
     print(f"Preview annotation count: {previewCount}")
     if(previewCount < 3 and previewCount != 0):
         print('''''')
-        print('''        $$$$$$$$\  $$$$$$\  $$$$$$\ $$\       $$$$$$$$\ $$$$$$$\  
-        $$  _____|$$  __$$\ \_$$  _|$$ |      $$  _____|$$  __$$\ 
-        $$ |      $$ /  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-        $$$$$\    $$$$$$$$ |  $$ |  $$ |      $$$$$\    $$ |  $$ |
-        $$  __|   $$  __$$ |  $$ |  $$ |      $$  __|   $$ |  $$ |
-        $$ |      $$ |  $$ |  $$ |  $$ |      $$ |      $$ |  $$ |
-        $$ |      $$ |  $$ |$$$$$$\ $$$$$$$$\ $$$$$$$$\ $$$$$$$  |
-        \__|      \__|  \__|\______|\________|\________|\_______/ ''')
         print(f"-p should be larger than 2")
         sys.exit()
 
@@ -59,6 +53,8 @@ def note():
     print(f"Clear the project: {args.c}")
     print(f"Keep Perception remains: {args.k}")
     print(f"Force calibrate and generate POM: {args.f}")
+    print(f"Disable multithread optimization: {args.s}")
+
 
     print("==== Args ====")
     print()
@@ -92,29 +88,31 @@ def finish():
         if(os.path.exists(f"calibrations")):
             shutil.rmtree(f"calibrations")
 
+    removeRawPerceptionFiles(args.k)
+
     print("==== All Done ====")
     print(f"Check {os.path.join(os.getcwd(), datasetParameters.DATASET_NAME)} to get your data!")
 
 if __name__ == '__main__':
 
-
+    threadCount = 36
     #generate_View()
 
     note()
     if(args.c):
         clear_project()
     elif(args.f):
-        calibrate()
+        calibrate(threadCount ,args.s)
         #vali()
         generate_POM()
     else:
-        perceptionHandler(args.k)
-        calibrate()
+        perceptionHandler()
+        calibrate(threadCount , args.s)
         #vali()
         generate_View()
         draw_views()
         generate_POM()
-        annotate(previewCount)
+        annotate(previewCount,threadCount,args.s)
     finish()
 
 
