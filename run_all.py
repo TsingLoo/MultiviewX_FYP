@@ -21,9 +21,9 @@ from generatePOM import generate_POM
 from perceptionHandler import perceptionHandler
 from perceptionHandler import removeRawPerceptionFiles
 from generateAnnotation import annotate
-from vali import vali
-from generateView import generate_View
-from generateView import draw_views
+#from vali import vali
+#from generateView import generate_View
+#from generateView import draw_views
 
 def note():
     print('''    $$\      $$\           $$\   $$\     $$\            $$\                         $$\   $$\         $$$$$$$\                                                      $$\     $$\                     
@@ -109,8 +109,8 @@ if __name__ == '__main__':
         perceptionHandler()
         calibrate(threadCount , args.s)
         #vali()
-        generate_View()
-        draw_views()
+        #generate_View()
+        #draw_views()
         generate_POM()
         annotate(previewCount,threadCount,args.s)
     finish()
