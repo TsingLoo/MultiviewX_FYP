@@ -98,17 +98,25 @@ def perceptionHandler():
 
     os.makedirs(Image_subsets_path,777)
     for key in sensorDic.keys():
+        #print(key)
         os.makedirs(os.path.join(Image_subsets_path, "C" + sensorDic[key]) ,777)
 
     for RGBdir in rgbLists[1:]:
+        #print(rgbLists)
+        #print(RGBdir)
         imageIndex = 0
 
-        for RGBImage in os.listdir(os.path.join(path, RGBdir)):
-            #print(RGBImage)
+        RGBImages = sorted(os.listdir(os.path.join(path, RGBdir)), key=lambda x: int(re.search(r'\d+', x).group()))
+        for RGBImage in RGBImages:
             string = str(imageIndex)
-            shutil.copy2(os.path.join(os.path.join(path, RGBdir),RGBImage),
-                      os.path.join(os.path.join(Image_subsets_path, "C" + sensorDic[RGBdir]), string.rjust(datasetParameters.RJUST_WIDTH, '0') + "." + RGBImage.split(".")[1]))
-            imageIndex = imageIndex + 1
+            destination_path = os.path.join(Image_subsets_path, "C" + sensorDic[RGBdir])
+            destination_filename = f"{string.rjust(datasetParameters.RJUST_WIDTH, '0')}.{RGBImage.split('.')[1]}"
+            # Copy the RGB image to the destination
+            shutil.copy2(
+                os.path.join(os.path.join(path, RGBdir), RGBImage),
+                os.path.join(destination_path, destination_filename)
+            )
+            imageIndex += 1
 
     print(Image_subsets_path + " Generation Done")
 
@@ -122,4 +130,4 @@ def removeRawPerceptionFiles(keep=False):
 
 
 if __name__ == '__main__':
-    perceptionHandler(False)
+    perceptionHandler()
