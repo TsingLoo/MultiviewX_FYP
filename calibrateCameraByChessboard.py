@@ -151,6 +151,7 @@ def calibrate_camera(cam):
 
 
 def fallback():
+    print("Calibrate one by one")
     for i in range(NUM_CAM):
         calibrate_camera(i)    
 
