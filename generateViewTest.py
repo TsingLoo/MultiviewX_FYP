@@ -127,6 +127,11 @@ def find_plane_equation(p1, p2, p3):
     D = -np.dot(normal, p1)
     return A, B, C, D
 
+def is_point_in_aoi(point, aoi_width, aoi_height):
+    x, y, z = point
+    return 0 <= x <= aoi_width and 0 <= y <= aoi_height and z == 0
+
+
 # Function to find intersection of a line with a plane
 def intersection_line_plane(plane, line_point, line_dir):
     A, B, C, D = plane
@@ -158,25 +163,65 @@ aoi_edges = [
     (np.array([0, aoi_height, 0]), np.array([0, -1, 0]))  # Left edge (opposite to right)
 ]
 
+intersection_points_with_aoi_edges = []
 
 # Find and plot the intersections for both planes
 for plane in [plane1, plane2]:
     for i, (line_point, line_dir) in enumerate(aoi_edges):
         intersection_point = intersection_line_plane(plane, line_point, line_dir)
         if intersection_point is not None:
+            intersection_points_with_aoi_edges.append(intersection_point)
             print(f"Intersection with AOI Edge {i} and Plane: {intersection_point}")
             ax.scatter([intersection_point[0]], [intersection_point[1]], [intersection_point[2]], color='orange', s=100)
 
 # Calculate the camera position
 camera_position = get_camera_position(rvec, tvec)
+camera_direction = -np.dot(np.linalg.inv(cv2.Rodrigues(rvec)[0]), np.array([0, 0, -1]))
+
+# Length of the direction vector for visualization
+direction_length = 10  # Adjust as needed
+
+# End point of the direction vector
+direction_end_point = camera_position + direction_length * camera_direction
 
 # Camera's projection on the ground
-camera_projection_on_ground = [camera_position[0], camera_position[1], 0]
+camera_projection_on_ground = (camera_position[0][0], camera_position[1][0], 0)
+
+# Function to check if a point is in front of the camera
+def is_point_in_front_of_camera(camera_pos, point, camera_direction):
+    # Vector from camera to the point
+    vector_to_point = np.array(point) - np.array(camera_pos)
+    # Dot product between camera direction and vector to point
+    dot_product = np.dot(vector_to_point, camera_direction)
+    return dot_product > 0
+
+
 
 # Plotting the camera position and its projection
 ax.scatter(*camera_position, color='blue', s=5, label='Camera Position')
+# Plot the camera direction
+ax.quiver(*camera_position, *camera_direction, length=direction_length, color='red', arrow_length_ratio=0.1, label='Camera Direction')
 ax.scatter(*camera_projection_on_ground, color='cyan', s=100, label='Camera Projection on Ground')
 
+
+# Assuming 'intersections' and 'intersection_points_with_aoi_edges' are lists of NumPy arrays
+all_points = intersections
+
+# Convert 'camera_projection_on_ground' to a NumPy array if it's not already
+camera_projection_on_ground_array = np.array(camera_projection_on_ground)
+
+
+all_points.append(camera_projection_on_ground_array)
+
+# Extend 'all_points' with 'intersection_points_with_aoi_edges'
+all_points.extend(intersection_points_with_aoi_edges)
+
+# Ensure all elements in 'all_points' are NumPy arrays
+all_points = [np.array(point) for point in all_points]
+
+
+# Filter points to include only those within or on the edges of the AOI
+filtered_points = [point for point in all_points if (is_point_in_aoi(point, aoi_width, aoi_height))]
 
 
 
