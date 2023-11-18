@@ -2,13 +2,61 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from datasetParameters import *
+import matplotlib.colors as mcolors
 from unitConversion import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def generateView():
-    for i in range(NUM_CAM):
+    all_overlaps = []
+    camera_positions = []
+    camera_colors = []
 
-        generateOneCameraView(i)
+    for i in range(NUM_CAM):
+        overlap_points, camera_position = generateOneCameraView(i)
+        # Store only the XY coordinates for 2D plotting
+        all_overlaps.append(overlap_points[:, :2])
+        camera_positions.append(camera_position[:2])  # Assuming Z-coordinate is 0
+        # Generate a random color for each camera
+        camera_colors.append(mcolors.to_rgba(np.random.rand(3,)))
+
+    # Plotting all overlaps in 2D
+    plt.figure(figsize=(10, 10))
+    for i, overlap in enumerate(all_overlaps):
+        # Close the loop by appending the first point at the end
+        closed_overlap = np.vstack([overlap, overlap[0]])
+
+        # Use a random color with transparency for filling
+        plt.fill(*zip(*closed_overlap), color=camera_colors[i], alpha=0.5)
+
+        # Plot the outline with the same color but without transparency
+        plt.plot(*zip(*closed_overlap), color=camera_colors[i][:-1], alpha=1)
+
+    # Plot the camera positions with their respective colors
+    for i, position in enumerate(camera_positions):
+        plt.scatter(*position, marker='x', color=camera_colors[i])
+        plt.text(position[0], position[1], f'Cam {i + 1}', color=camera_colors[i], fontsize=9, ha='right')
+
+    # Plot the AOI
+    aoi_corners_2d = np.array([[0, 0], [MAP_WIDTH, 0], [MAP_WIDTH, MAP_HEIGHT], [0, MAP_HEIGHT], [0, 0]])
+    plt.plot(*zip(*aoi_corners_2d), color='purple')
+
+    # Set plot limits and labels with padding
+    padding = 3  # Adjust padding as needed
+    plt.xlim(0 - padding, MAP_WIDTH + padding)
+    plt.ylim(0 - padding, MAP_HEIGHT + padding)
+    plt.xlabel('X axis')
+    plt.ylabel('Y axis')
+    plt.title('Overlap Areas and Camera Positions in 2D')
+
+    # Set the aspect of the plot to be equal, making the grid square
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    # Enable the grid
+    plt.grid(True)
+
+    plt.show()
+
+
 
 
 def generateOneCameraView(idx):
@@ -91,13 +139,6 @@ def generateOneCameraView(idx):
         [0, 0, 0]  # Close the rectangle
     ])
 
-    aoi_points = [
-        [0, 0, 0],
-        [MAP_WIDTH, 0, 0],
-        [MAP_WIDTH, MAP_HEIGHT, 0],
-        [0, MAP_HEIGHT, 0]
-        # Add any additional points on the edges if needed
-    ]
 
     # Define lines for each edge of the AOI
     aoi_edges = [
@@ -183,7 +224,7 @@ def generateOneCameraView(idx):
     # Extend 'all_points' with 'intersection_points_with_aoi_edges'
     all_points.extend(intersection_points_with_aoi_edges)
 
-    all_points.extend(aoi_points)
+    all_points.extend(aoi_corners)
 
     # Ensure all elements in 'all_points' are NumPy arrays
     all_points = [np.array(point) for point in all_points]
@@ -253,3 +294,5 @@ def generateOneCameraView(idx):
 
     # Show plot
     plt.show()
+
+    return overlap_points, camera_position
