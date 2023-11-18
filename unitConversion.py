@@ -87,7 +87,6 @@ def swap_unity12(unity_pos_2):
     result = [unity_pos_2[0],unity_pos_2[2],unity_pos_2[1]]
     return result
 
-
 def get_calibration(camIdx):
     camIdx = camIdx + 1
     intrinsic_xml = f'intr_Camera{camIdx}.xml'
@@ -144,6 +143,9 @@ def map_point_to_world_on_plane(r, t, c, d, u, v, plane_origin, plane_normal = [
 
 def get_camera_position(r,t):
     # Calculate the inverse rotation matrix
+    # print(r)
+    # print(t)
+
     rotation_matrix, _ = cv2.Rodrigues(r)
     inv_rotation_matrix = np.linalg.inv(rotation_matrix)
 
@@ -151,3 +153,109 @@ def get_camera_position(r,t):
     inv_camera_position = -np.dot(inv_rotation_matrix, t)
 
     return inv_camera_position.tolist()
+
+# Function to find plane equation
+def find_plane_equation(p1, p2, p3):
+    # Vectors in the plane
+    v1 = p3 - p1
+    v2 = p2 - p1
+
+    # Normal vector to the plane
+    normal = np.cross(v1, v2)
+
+    # Plane equation: Ax + By + Cz + D = 0
+    A, B, C = normal
+    D = -np.dot(normal, p1)
+    return A, B, C, D
+
+def is_point_in_aoi(point, aoi_width, aoi_height):
+    x, y, z = point
+    isInAOI = 0 <= x <= aoi_width and 0 <= y <= aoi_height and -0.005 <= z <= 0.005
+    if(not isInAOI):
+        print(f'Point {point} is not in AOI')
+    return isInAOI
+
+
+# Function to find intersection of a line with a plane
+def intersection_line_plane(plane, line_point, line_dir):
+    A, B, C, D = plane
+    x0, y0, z0 = line_point
+    l, m, n = line_dir
+
+    # Check if the line is parallel to the plane
+    if A*l + B*m + C*n == 0:
+        return None  # No intersection, the line is parallel to the plane
+
+    # Find the parameter t for the line
+    t = -(A*x0 + B*y0 + C*z0 + D) / (A*l + B*m + C*n)
+
+    # Find the intersection point
+    intersection = line_point + t * line_dir
+    return intersection
+
+
+
+def is_point_on_correct_side_of_plane(point, p1, p2, p3):
+    """
+    Check if a point is on the correct side of a plane defined by three points.
+
+    :param point: The point to check.
+    :param p1, p2, p3: Points defining the plane.
+    :return: True if the point is on the correct side, False otherwise.
+    """
+    normal = -np.cross(p2 - p1, p3 - p1)
+    result = np.dot(normal, point - p1) >= - 1
+    #print(f"Is correct side of the plane {p1,p2,p3}:", result)
+
+    return result, np.dot(normal, point - p1)
+
+def is_point_in_frustum(point, frustum_corners):
+    """
+    Check if a point is inside the camera's view frustum.
+
+    :param point: The point to check, in world coordinates.
+    :param frustum_corners: The corners of the frustum in world coordinates.
+    :return: True if the point is inside the frustum, False otherwise.
+    """
+
+    # Define the six planes of the frustum with descriptive names
+    planes = {
+        'Near Plane': (frustum_corners[0], frustum_corners[1], frustum_corners[5]),
+        'Far Plane': (frustum_corners[2], frustum_corners[3], frustum_corners[7]),
+        'Left Plane': (frustum_corners[1], frustum_corners[0], frustum_corners[2]),
+        'Right Plane': (frustum_corners[4], frustum_corners[5], frustum_corners[6]),
+        'Bottom Plane': (frustum_corners[3], frustum_corners[0], frustum_corners[4]),
+        'Top Plane': (frustum_corners[1], frustum_corners[2], frustum_corners[6])
+    }
+
+    for plane_name, plane_points in planes.items():
+        isOnCorrectSide, value = is_point_on_correct_side_of_plane(point, *plane_points)
+
+        if not isOnCorrectSide:
+            print(f"{point} is not in the frustum because it failed at the {plane_name} (plane points: {plane_points}), value: {value}")
+            return False
+
+    print(f"{point} is in the frustum")
+    return True
+
+# Function to sort points in clockwise order (assuming they are all in the same plane)
+def sort_points_clockwise(points):
+    center = np.mean(points, axis=0)
+    sorted_points = sorted(points, key=lambda point: np.arctan2(point[1] - center[1], point[0] - center[0]))
+    return np.array(sorted_points)
+
+def intersection_with_ground(corner_near, corner_far):
+    # Line direction vector
+    direction = corner_far - corner_near
+
+    # Assuming corner_near is not already on the ground
+    if direction[2] == 0:
+        return None  # Line is parallel to the ground
+
+    # Find the parameter t at which the line intersects the ground
+    t = -corner_near[2] / direction[2]
+
+    # Calculate the intersection point
+    intersection = corner_near + t * direction
+
+    return intersection

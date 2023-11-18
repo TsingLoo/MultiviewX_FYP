@@ -1,7 +1,7 @@
 import shutil
 import os
 import sys
-
+from generateOverlapView import generateView
 import datasetParameters
 import argparse
 import fnmatch
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         perceptionHandler()
         calibrate(threadCount , args.s)
         #vali()
-        #generate_View()
+        generateView()
         #draw_views()
         generate_POM()
         annotate(previewCount,threadCount,args.s)
