@@ -143,3 +143,5 @@ rectangles.pom
 *.gif
 FOVs.*
 viewarea.*
+
+*.svg

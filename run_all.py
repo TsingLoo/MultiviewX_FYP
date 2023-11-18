@@ -12,9 +12,11 @@ parser.add_argument("-c", action = "store_true",help="Clear the project files an
 parser.add_argument("-k", action = "store_true",help="Keep the remains of Perception dataset or not.")
 parser.add_argument("-f", action = "store_true",help="Force calibrate and generate POM, regardless of perception.")
 parser.add_argument("-s", action = "store_true",help="Disable multithread optimization when the number of cameras is less than 7")
+parser.add_argument("-v", action = "store_true",help="Draw the overlap for this calibration")
+parser.add_argument('-view', type=str, help='Specify a path to draw Overlap FOV with the provided dataset')
 args = parser.parse_args()
 previewCount = args.p if args.p else 0
-
+viewDataset = args.view if args.view else ""
 
 from calibrateCameraByChessboard import calibrate
 from generatePOM import generate_POM
@@ -54,6 +56,8 @@ def note():
     print(f"Keep Perception remains: {args.k}")
     print(f"Force calibrate and generate POM: {args.f}")
     print(f"Disable multithread optimization: {args.s}")
+    print(f"Draw Overlap FOV: {args.v}")
+    print(f"Draw Overlap FOV for dataset: {args.view}")
 
 
     print("==== Args ====")
@@ -96,21 +100,21 @@ def finish():
 if __name__ == '__main__':
 
     threadCount = 36
-    #generate_View()
+
 
     note()
-    if(args.c):
+    if (viewDataset != ""):
+        generateView(viewDataset)
+    elif(args.c):
         clear_project()
     elif(args.f):
         calibrate(threadCount ,args.s)
-        #vali()
         generate_POM()
     else:
         perceptionHandler()
         calibrate(threadCount , args.s)
-        #vali()
-        generateView()
-        #draw_views()
+        if(args.v):
+            generateView()
         generate_POM()
         annotate(previewCount,threadCount,args.s)
     finish()

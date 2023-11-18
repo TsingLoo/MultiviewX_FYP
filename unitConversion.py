@@ -1,8 +1,10 @@
 import numpy as np
 import os
 import cv2
+import re
 import datasetParameters
 from datasetParameters import *
+import xml.etree.ElementTree as ET
 
 def get_worldgrid_from_pos(pos):
     """
@@ -87,32 +89,77 @@ def swap_unity12(unity_pos_2):
     result = [unity_pos_2[0],unity_pos_2[2],unity_pos_2[1]]
     return result
 
-def get_calibration(camIdx):
-    camIdx = camIdx + 1
-    intrinsic_xml = f'intr_Camera{camIdx}.xml'
-    extrinsic_xml = f'extr_Camera{camIdx}.xml'
 
+def get_calibration_files(calibration_path, camIdx):
+    intrinsic_path = os.path.join(calibration_path, 'intrinsic')
+    extrinsic_path = os.path.join(calibration_path, 'extrinsic')
 
-    DATASET_NAME = datasetParameters.DATASET_NAME
+    # List files in the intrinsic and extrinsic directories
+    intrinsic_files = os.listdir(intrinsic_path)
+    extrinsic_files = os.listdir(extrinsic_path)
+
+    # Collect and pair the files
+    calibration_pairs = []
+    for intr_file in intrinsic_files:
+        match = re.match(r'intr_(\w+).xml', intr_file)
+        if match:
+            file_id = match.group(1)
+            extr_file = f'extr_{file_id}.xml'
+            if extr_file in extrinsic_files:
+                calibration_pairs.append((intr_file, extr_file))
+
+    # Sort the pairs to ensure consistent ordering
+    calibration_pairs.sort()
+
+    if camIdx < len(calibration_pairs):
+        return calibration_pairs[camIdx]
+    else:
+        return None, None
+
+def get_calibration(camIdx, DATASET_NAME=""):
+    if DATASET_NAME == "":
+        DATASET_NAME = datasetParameters.DATASET_NAME
+
     calibration_path = os.path.join(DATASET_NAME, "calibrations")
-    intrinsic_path = os.path.join(calibration_path, f'intrinsic')
-    extrinsic_path = os.path.join(calibration_path, f'extrinsic')
 
-    fp_calibration = cv2.FileStorage(os.path.join(intrinsic_path,  f'{intrinsic_xml}'),
-                                         flags=cv2.FILE_STORAGE_READ)
+    # Get the calibration file names
+    intrinsic_xml, extrinsic_xml = get_calibration_files(calibration_path, camIdx)
+    if not intrinsic_xml or not extrinsic_xml:
+        raise FileNotFoundError("Matching intrinsic and extrinsic files not found for the given camera index.")
 
-    #取得给定的相机内参
+    print(os.path.join(calibration_path, 'intrinsic', intrinsic_xml))
+
+    fp_calibration = cv2.FileStorage(os.path.join(calibration_path, 'intrinsic', intrinsic_xml),
+                                     flags=cv2.FILE_STORAGE_READ)
     cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
-            'distortion_coefficients').mat()
-
-    fp_calibration.release()
-    fp_calibration = cv2.FileStorage(os.path.join(extrinsic_path,f'{extrinsic_xml}')  ,
-                                         flags=cv2.FILE_STORAGE_READ)
-    rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
-    #取得给定的相机外参
+        'distortion_coefficients').mat()
     fp_calibration.release()
 
-    return  rvec, tvec, cameraMatrix, distCoeffs
+
+    try:
+        print(os.path.join(calibration_path, 'extrinsic', extrinsic_xml))
+
+        fp_calibration = cv2.FileStorage(os.path.join(calibration_path, 'extrinsic', extrinsic_xml),
+                                     flags=cv2.FILE_STORAGE_READ)
+        rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
+        fp_calibration.release()
+    except:
+        # Parse the XML file
+        tree = ET.parse(os.path.join(os.path.join(calibration_path, 'extrinsic'), extrinsic_xml))
+        root = tree.getroot()
+
+        # Extract and convert the rotation vector (rvec)
+        rvec_text = root.find('rvec').text.strip()
+        rvec = np.array([float(num) for num in rvec_text.split()])
+
+        # Extract and convert the translation vector (tvec)
+        tvec_text = root.find('tvec').text.strip()
+        tvec = np.array([float(num) for num in tvec_text.split()])
+
+
+    tvec = tvec * OverlapUnitConvert
+
+    return rvec, tvec, cameraMatrix, distCoeffs
 
 def map_point_to_world_on_plane(r, t, c, d, u, v, plane_origin, plane_normal = [0, -1, 0]):
     # Undistort the image coordinates
@@ -151,6 +198,11 @@ def get_camera_position(r,t):
 
     # Calculate the camera position
     inv_camera_position = -np.dot(inv_rotation_matrix, t)
+
+    offset = np.array(OverlapGridOffset)
+    inv_camera_position = inv_camera_position + offset
+
+
 
     return inv_camera_position.tolist()
 
@@ -259,3 +311,58 @@ def intersection_with_ground(corner_near, corner_far):
     intersection = corner_near + t * direction
 
     return intersection
+
+def calculate_intersection(p1, p2, edge):
+    """
+    Calculate the intersection of a line segment (p1, p2) with another line segment (edge).
+    Assumes that all points are 2D.
+    """
+    #print(f"{p1} {p2}")
+
+    # Convert points to numpy arrays
+    p1, p2 = np.array(p1, dtype=np.float64), np.array(p2, dtype=np.float64)
+    edge = np.array(edge, dtype=np.float64)
+
+    p1[2] = 0
+    p2[2] = 0
+
+    # Line equation for p1p2: A1x + B1y = C1
+    A1 = p2[1] - p1[1]
+    B1 = p1[0] - p2[0]
+    C1 = A1 * p1[0] + B1 * p1[1]
+
+    #print()
+
+    #print(f"L1: {A1}x + {B1}y = {C1}")
+
+    #print(edge)
+
+    # Line equation for edge: A2x + B2y = C2
+    A2 = edge[1,1] - edge[0,1]
+    B2 = edge[0,0] - edge[1,0]
+    C2 = A2 * edge[0,0] + B2 * edge[0,1]
+
+    #print(f"L2: {A2}x + {B2}Y = {C2}")
+
+    # Solve the system of equations
+    determinant = A1 * B2 - A2 * B1
+    if determinant == 0:
+        return None  # Lines are parallel
+
+    x = (B2 * C1 - B1 * C2) / determinant
+    y = (A1 * C2 - A2 * C1) / determinant
+
+    #print(f"The possible point is {[x, y, 0]}")
+
+    epsilon = 1e-5  # Tolerance value, can be adjusted based on the precision you need
+
+    # Use the tolerance in comparisons
+    if (min(p1[0], p2[0]) - epsilon <= x <= max(p1[0], p2[0]) + epsilon and
+            min(p1[1], p2[1]) - epsilon <= y <= max(p1[1], p2[1]) + epsilon and
+            min(edge[0, 0], edge[1, 0]) - epsilon <= x <= max(edge[0, 0], edge[1, 0]) + epsilon and
+            min(edge[0, 1], edge[1, 1]) - epsilon <= y <= max(edge[0, 1], edge[1, 1]) + epsilon):
+
+        #print([x, y, 0])
+        return np.array([x, y, 0])
+    else:
+        return None

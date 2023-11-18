@@ -1,18 +1,19 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from datasetParameters import *
 import matplotlib.colors as mcolors
 from unitConversion import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def generateView():
+def generateView(DATASET = ""):
+    np.random.seed(0)
+
     all_overlaps = []
     camera_positions = []
     camera_colors = []
 
     for i in range(NUM_CAM):
-        overlap_points, camera_position = generateOneCameraView(i)
+        overlap_points, camera_position = generateOneCameraView(i,DATASET)
         # Store only the XY coordinates for 2D plotting
         all_overlaps.append(overlap_points[:, :2])
         camera_positions.append(camera_position[:2])  # Assuming Z-coordinate is 0
@@ -26,7 +27,7 @@ def generateView():
         closed_overlap = np.vstack([overlap, overlap[0]])
 
         # Use a random color with transparency for filling
-        plt.fill(*zip(*closed_overlap), color=camera_colors[i], alpha=0.5)
+        #plt.fill(*zip(*closed_overlap), color=camera_colors[i], alpha=0.5)
 
         # Plot the outline with the same color but without transparency
         plt.plot(*zip(*closed_overlap), color=camera_colors[i][:-1], alpha=1)
@@ -41,7 +42,7 @@ def generateView():
     plt.plot(*zip(*aoi_corners_2d), color='purple')
 
     # Set plot limits and labels with padding
-    padding = 3  # Adjust padding as needed
+    padding = MAP_WIDTH * 0.2  # Adjust padding as needed
     plt.xlim(0 - padding, MAP_WIDTH + padding)
     plt.ylim(0 - padding, MAP_HEIGHT + padding)
     plt.xlabel('X axis')
@@ -54,18 +55,20 @@ def generateView():
     # Enable the grid
     plt.grid(True)
 
+    plt.savefig(f'OverlapView.svg', format='svg')
+
     plt.show()
 
 
 
 
-def generateOneCameraView(idx):
+def generateOneCameraView(idx,DATASET):
 
     print()
     print(f"Now generating view for Camera {idx + 1}")
 
     # Camera intrinsic parameters
-    rvec, tvec, camera_matrix, _ = get_calibration(idx)
+    rvec, tvec, camera_matrix, _ = get_calibration(idx,DATASET)
 
     print(f"Camera {idx + 1}'s posistion is {get_camera_position(rvec, tvec)}")
 
@@ -73,7 +76,7 @@ def generateOneCameraView(idx):
     R, _ = cv2.Rodrigues(rvec)
 
     # Define near and far planes
-    near, far = 0.1, 1000
+    near, far = 0.1, 100000000
 
     # Frustum corners in camera coordinates
     h, w = camera_matrix[1, 2] * 2, camera_matrix[0, 2] * 2
@@ -82,6 +85,8 @@ def generateOneCameraView(idx):
         [0, 0, far], [w, 0, far], [w, h, far], [0, h, far]       # far plane
     ])
 
+    offset = np.array(OverlapGridOffset)
+
     # Transform frustum corners to world coordinates
     world_corners = []
     for corner in frustum_corners:
@@ -89,6 +94,7 @@ def generateOneCameraView(idx):
         ndc = np.dot(np.linalg.inv(camera_matrix), np.append(corner[:2], 1)) * corner[2]
         # Transform to world coordinates
         world_corner = np.dot(np.linalg.inv(R), ndc - tvec.squeeze())
+        world_corner = world_corner + offset
         world_corners.append(world_corner)
 
     world_corners = np.array(world_corners)
@@ -124,12 +130,6 @@ def generateOneCameraView(idx):
         if intersection is not None:
             intersections.append(intersection)
 
-    # Add intersection points to the plot
-    for point in intersections:
-        print(f"Green points is {point} ")
-        ax.scatter([point[0]], [point[1]], [point[2]], color='green', s=50)
-
-
     # Define the corners of the AOI rectangle
     aoi_corners = np.array([
         [0, 0, 0],  # Origin
@@ -141,12 +141,34 @@ def generateOneCameraView(idx):
 
 
     # Define lines for each edge of the AOI
-    aoi_edges = [
+    aoi_edges_vec = [
         (np.array([0, 0, 0]), np.array([1, 0, 0])),  # Bottom edge (along X-axis)
         (np.array([MAP_WIDTH, 0, 0]), np.array([0, 1, 0])),  # Right edge (along Y-axis)
         (np.array([MAP_WIDTH, MAP_HEIGHT, 0]), np.array([-1, 0, 0])),  # Top edge (opposite to bottom)
         (np.array([0, MAP_HEIGHT, 0]), np.array([0, -1, 0]))  # Left edge (opposite to right)
     ]
+
+    aoi_edges = [
+        (np.array([0, 0, 0]), np.array([MAP_WIDTH, 0, 0])),  # Bottom edge
+        (np.array([MAP_WIDTH, 0, 0]), np.array([MAP_WIDTH, MAP_HEIGHT, 0])),  # Right edge
+        (np.array([MAP_WIDTH, MAP_HEIGHT, 0]), np.array([0, MAP_HEIGHT, 0])),  # Top edge
+        (np.array([0, MAP_HEIGHT, 0]), np.array([0, 0, 0]))  # Left edge
+    ]
+    # Assuming intersections[0] and intersections[1] are your 3D points
+    line_segment_start = intersections[0]
+    line_segment_end = intersections[1]
+
+    # Iterating over each edge of the AOI and calculating intersections
+    for edge in aoi_edges:
+        intersection_point = calculate_intersection(line_segment_start, line_segment_end, edge)
+        if intersection_point is not None:
+            intersections.append(intersection_point)
+            print(f"Intersection with edge {edge}: {intersection_point}")
+
+    # Add intersection points to the plot
+    for point in intersections:
+        print(f"Raw green points is {point} ")
+        ax.scatter([point[0]], [point[1]], [point[2]], color='green', s=50)
 
 
     # Plot the AOI on the ground
@@ -166,12 +188,12 @@ def generateOneCameraView(idx):
 
     # Find and plot the intersections for both planes
     for plane in [plane1, plane2]:
-        for i, (line_point, line_dir) in enumerate(aoi_edges):
+        for i, (line_point, line_dir) in enumerate(aoi_edges_vec):
             intersection_point = intersection_line_plane(plane, line_point, line_dir)
             if intersection_point is not None:
                 intersection_points_with_aoi_edges.append(intersection_point)
                 print(f"Intersection with AOI Edge {i} and Plane: {intersection_point}")
-                ax.scatter([intersection_point[0]], [intersection_point[1]], [intersection_point[2]], color='orange', s=100)
+                ax.scatter([intersection_point[0]], [intersection_point[1]], [intersection_point[2]], color='orange', s=10)
 
     # Calculate the camera position
     camera_position = get_camera_position(rvec, tvec)
@@ -189,27 +211,12 @@ def generateOneCameraView(idx):
 
     #print(is_point_in_frustum( (25, 16, 0)  , world_corners))
 
-    # Image dimensions (width and height)
-    image_width = IMAGE_WIDTH  # Replace with your image width
-    image_height = IMAGE_HEIGHT  # Replace with your image height
-
-    # Focal lengths
-    f_x = camera_matrix[0, 0]
-    f_y = camera_matrix[1, 1]
-
-    # Calculate horizontal and vertical FoV in degrees
-    h_fov = 2 * np.degrees(np.arctan(image_width / (2 * f_x)))
-    v_fov = 2 * np.degrees(np.arctan(image_height / (2 * f_y)))
-
-    print(f"Horizontal FoV: {h_fov} degrees")
-    print(f"Vertical FoV: {v_fov} degrees")
-
 
     # Plotting the camera position and its projection
     ax.scatter(*camera_position, color='blue', s=5, label='Camera Position')
     # Plot the camera direction
-    ax.quiver(*camera_position, *camera_direction, length=direction_length, color='red', arrow_length_ratio=0.1, label='Camera Direction')
-    ax.scatter(*camera_projection_on_ground, color='cyan', s=100, label='Camera Projection on Ground')
+    ax.quiver(*camera_position, *camera_direction, length=MAP_WIDTH*0.1, color='yellow', arrow_length_ratio=0.3, label='Camera Direction')
+    ax.scatter(*camera_projection_on_ground, color='cyan', s=10, label='Camera Projection on Ground')
 
 
     # Assuming 'intersections' and 'intersection_points_with_aoi_edges' are lists of NumPy arrays
@@ -291,6 +298,8 @@ def generateOneCameraView(idx):
 
     # Legend
     ax.legend()
+
+    plt.savefig(f'Camera_View{idx+1}.svg', format='svg')
 
     # Show plot
     plt.show()
