@@ -1,3 +1,15 @@
+```
+@article{YANG2024104203,
+title = {An end-to-end tracking framework via multi-view and temporal feature aggregation},
+journal = {Computer Vision and Image Understanding},
+volume = {249},
+pages = {104203},
+year = {2024},
+issn = {1077-3142},
+doi = {https://doi.org/10.1016/j.cviu.2024.104203},
+author = {Yihan Yang and Ming Xu and Jason F. Ralph and Yuchen Ling and Xiaonan Pan},
+}
+```
 More information：[Notes of MultiviewX_Perception](http://www.tsingloo.com/2023/03/01/0a2bf39019914a06954a4506b9f0ca37/) 
 
 # Args
